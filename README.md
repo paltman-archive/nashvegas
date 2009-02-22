@@ -32,3 +32,7 @@ scripts.  They should be named:
     YYYYMMDD-##.sql
 
 Where YYYY is the 4 digit year, MM is the two digit month, and DD is the two digit day.
+
+A tabled called `versions` will be created in your database the first time this command
+executes.  The rows in this table track which scripts have been executed.  You should 
+rarely if ever need to examine this table, or even be aware of its existence.
