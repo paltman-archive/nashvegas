@@ -1,0 +1,3 @@
+[ ] Create and Use a Versions model, instead of hard coded SQL for CREATE,
+    SELECT, INSERT statements.
+[ ] Bring code into PEP 8 compliance.

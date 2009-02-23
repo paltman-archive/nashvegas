@@ -10,6 +10,7 @@ from django.conf import settings
 from django.db import connection
 from django.core.management.base import BaseCommand, CommandError
 from optparse import make_option
+from datetime import datetime
 
 
 reSQL = re.compile(";\s*$", re.MULTILINE)
@@ -17,10 +18,10 @@ reSQL = re.compile(";\s*$", re.MULTILINE)
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
             make_option('-l','--list', action='store_true',
-                        dest='list_todo', default=True,
+                        dest='do_list', default=True,
                         help='Enumerate the list of scripts to execute.'),
             make_option('-e', '--execute', action='store_true',
-                        dest='execute_todo', default=False,
+                        dest='do_execute', default=False,
                         help='Execute scripts not in versions table.'),
             make_option('-p','--path', dest='path', 
                 default=os.path.join(settings.PROJECT_PATH, 'db'), 
@@ -44,6 +45,14 @@ class Command(BaseCommand):
             print 'Versions table created.'
             return True
         return False
+    
+    def _stamp_version(self, sql, statements, rev):
+        if len(statements) > 0:
+            c = connection.cursor()
+            count = c.execute("""INSERT INTO versions (version, date_created, sql_executed, scm_version) 
+                          VALUES (%(sql)s, %(date)s, %(statements)s, %(revision)s);""", {'sql':sql, 'date':datetime.now(), 'statements':';\n'.join(statements)+';', 'revision':rev})
+            print "## DB status updated: %s" % sql
+               
     
     def _get_version_list(self):
         """Gets list of already installed database scripts."""
@@ -109,7 +118,7 @@ class Command(BaseCommand):
         sha1 = hashlib.sha1(contents).hexdigest()
         rev = self._get_rev(full_path)
         print "## Processing %s, %s bytes, sha1 %s, rev %s" % (sql, size, sha1, rev)
-        return {'statements':reSQL.split(contents), 'full_path':full_path, 'contents':contents, 'size':size, 'sha1':sha1, 'rev':rev}
+        return {'statements':[x.strip() for x in reSQL.split(contents)], 'full_path':full_path, 'contents':contents, 'size':size, 'sha1':sha1, 'rev':rev}
     
     def handle(self, *args, **options):
         """
@@ -118,11 +127,26 @@ class Command(BaseCommand):
         Executes SQL scripts that haven't already been applied to the 
         database.
         """
-        self.list_todo = options.get('list_todo')
-        self.execute_todo = options.get('execute_todo')
+        self.do_list = options.get('do_list')
+        self.do_execute = options.get('do_execute')
         self.path = options.get('path')
         
         ## Does versions table exist?  If not, create it.
         self._versions_create()
         for sql in self._filter_down():
-            print sql
+            splits = self._split_file(sql)
+            executed = []
+            seg_num = 0
+            for statement in splits['statements']:
+                if statement and statement not in ('BEGIN','COMMIT'):
+                    print "### printing segment %s, %s bytes, sha1 %s" % (seg_num, len(statement), hashlib.sha1(statement).hexdigest())
+                    print "%s;" % statement
+                    if self.do_execute:
+                        cursor = connection.cursor()
+                        count = cursor.execute(statement)
+                        print "### SUCCESS, %s rows affected." % count
+                        executed.append(statement)
+                seg_num += 1
+            self._stamp_version(sql, executed, splits['rev'])
+        print "# Script Ended %s" % datetime.now()
+
