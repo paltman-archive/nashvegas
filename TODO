@@ -7,3 +7,6 @@
     YYYYMMDD-##.sh, etc.
 [ ] Detect if db folder doesn't exist and alert the user with a friendly 
     message.
+[ ] Automatically run (or provide an option to opt-in/opt-out of) the 
+    function in django to create the proper content types that syncdb 
+    takes care of.
