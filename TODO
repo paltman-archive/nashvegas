@@ -1,3 +1,7 @@
 [ ] Create and Use a Versions model, instead of hard coded SQL for CREATE,
     SELECT, INSERT statements.
 [ ] Bring code into PEP 8 compliance.
+[ ] Use python logging instead of print statements
+[ ] Add ability to execute python and/or other shell scripts in the same
+    execution sequence as sql scripts -- YYYYMMDD-##.sql, YYYYMMDD-##.py,
+    YYYYMMDD-##.sh, etc.
