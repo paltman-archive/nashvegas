@@ -90,14 +90,15 @@ class Command(BaseCommand):
         except:
             pass
         
-        try:
-            svninfo = Popen(["svn", "info", sql], stdout=PIPE).stdout.readlines()
-            for info in svninfo:
-                tokens = info.split(':')
-                if tokens[0].strip() == 'Last Changed Rev':
-                    rev = tokens[1].strip()
-        except:
-            pass
+        if not rev:
+            try:
+                svninfo = Popen(["svn", "info", sql], stdout=PIPE).stdout.readlines()
+                for info in svninfo:
+                    tokens = info.split(':')
+                    if tokens[0].strip() == 'Last Changed Rev':
+                        rev = tokens[1].strip()
+            except:
+                pass
             
         return rev
         
