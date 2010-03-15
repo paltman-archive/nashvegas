@@ -1,4 +1,7 @@
-# Nashvegas 
+__*NOTE*__: I am no longer maintaining this in favor of using [South](http://south.aeracode.org/).
+
+
+# Nashvegas
 
 The purpose of this app is to enable a plug and play method for managing database changes.
 
