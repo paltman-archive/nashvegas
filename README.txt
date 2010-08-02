@@ -1,7 +1,6 @@
-__*NOTE*__: I am no longer maintaining this in favor of using [South](http://south.aeracode.org/).
-
-
-# Nashvegas
+=========
+Nashvegas
+=========
 
 The purpose of this app is to enable a plug and play method for managing database changes.
 
@@ -12,7 +11,8 @@ Database migrations is a large topic with a lot of different approaches.  This a
 worked well for my needs so I thought I'd put it out on the "Interwebs" and let the 
 community judge it for it's usefulness.
 
-# How to Use
+How to Use
+----------
 
 * Add the application to your PYTHON_PATH
 * Add the application to your INSTALLED_APPS list in your settings.py file.
@@ -20,14 +20,16 @@ community judge it for it's usefulness.
 
     $ ./manage.py upgradedb --list|--execute [--path /path/to/scripts]
 
-# Options
+Options
+-------
 
 * --list - Lists all the scripts that will need to be executed.
 * --execute - Executes all the scripts that need to be executed.
 * --path - The fully qualified path to the where the database scripts are located.
            This defaults to {{ PROJECT_PATH }}/db
 
-# Conventions
+Conventions
+-----------
 
 Part of the simplicity of this solution is based on the naming conventions of the sql
 scripts.  They should be named:
