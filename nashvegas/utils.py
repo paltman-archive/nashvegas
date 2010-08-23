@@ -42,6 +42,7 @@ def get_sql_for_new_models():
             sql, references = connection.creation.sql_create_model(model, no_style(), seen_models)
             seen_models.add(model)
             created_models.add(model)
+            statements.append("### New Model: %s.%s" % (app_name, str(model).replace("'>", "").split(".")[-1]))
             for refto, refs in references.items():
                 pending_references.setdefault(refto, []).extend(refs)
                 if refto in seen_models:
