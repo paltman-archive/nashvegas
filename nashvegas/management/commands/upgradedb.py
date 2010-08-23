@@ -14,7 +14,7 @@ class Command(BaseCommand):
     
     option_list = BaseCommand.option_list + (
             make_option("-l", "--list", action = "store_true",
-                        dest = "do_list", default = True,
+                        dest = "do_list", default = False,
                         help = "Enumerate the list of migrations to execute."),
             make_option("-e", "--execute", action = "store_true",
                         dest = "do_execute", default = False,
