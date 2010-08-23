@@ -1,11 +1,14 @@
 import os
 
 from optparse import make_option
-from subprocess import Popen
+from subprocess import Popen, PIPE, STDOUT
 
 from django.db import connections, transaction, DEFAULT_DB_ALIAS
+from django.db.models import get_model
 from django.conf import settings
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
+from django.core.management.sql import emit_post_sync_signal
 
 from nashvegas.models import Migration
 from nashvegas.utils import get_sql_for_new_models
