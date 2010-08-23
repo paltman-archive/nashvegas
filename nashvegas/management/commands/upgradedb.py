@@ -106,7 +106,14 @@ class Command(BaseCommand):
         pass
     
     def list_migrations(self):
-        pass
+        migrations = self._filter_down()
+        if len(migrations) == 0:
+            print "There are no migrations to apply."
+            return
+        
+        print "Migrations to Apply:"
+        for script in migrations:
+            print "\t%s" % script
     
     def handle(self, *args, **options):
         """
