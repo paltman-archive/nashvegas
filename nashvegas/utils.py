@@ -3,6 +3,7 @@ from django.core.management.sql import custom_sql_for_model
 from django.db import connections, router, models, DEFAULT_DB_ALIAS
 from django.utils.datastructures import SortedDict
 
+
 def get_sql_for_new_models():
     """
     Unashamedly copied and tweaked from djang.core.management.commands.syncdb
@@ -27,7 +28,7 @@ def get_sql_for_new_models():
         converter = connection.introspection.table_name_converter
         return not ((converter(opts.db_table) in tables) or
             (opts.auto_created and converter(opts.auto_created._meta.db_table) in tables))
-
+    
     manifest = SortedDict(
         (app_name, filter(model_installed, model_list))
         for app_name, model_list in all_models
