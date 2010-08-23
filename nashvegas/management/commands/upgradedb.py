@@ -68,41 +68,43 @@ class Command(BaseCommand):
     def _get_rev(self, fpath):
         """Get an SCM verion number.  Try svn and git."""
         rev = None
-        return rev
+        
         try:
-            cmd = ["git", "log", "-n1", "--pretty=format:\"%h\"", sql]
-            rev = Popen(cmd, stdout=PIPE).communicate()[0]
+            cmd = ["git", "log", "-n1", "--pretty=format:\"%h\"", fpath]
+            rev = Popen(cmd, stdout=PIPE, stderr=PIPE).communicate()[0]
         except:
             pass
-    
+        
         if not rev:
             try:
-                cmd = ["svn", "info", sql]
-                svninfo = Popen(cmd, stdout=PIPE).stdout.readlines()
+                cmd = ["svn", "info", fpath]
+                svninfo = Popen(cmd, stdout=PIPE, stderr=PIPE).stdout.readlines()
                 for info in svninfo:
                     tokens = info.split(":")
                     if tokens[0].strip() == "Last Changed Rev":
                         rev = tokens[1].strip()
             except:
                 pass
-    
+            
         return rev
     
     def init_nashvegas(self):
         # @@@ make cleaner / check explicitly for model instead of looping over and doing string comparisons
-        connection = connections[DEFAULT_DB_ALIAS]
+        connection = connections[self.db]
         cursor = connection.cursor()
         all_new = get_sql_for_new_models()
         for s in all_new:
             if "nashvegas_migration" in s:
                 cursor.execute(s)
-                transaction.commit_unless_managed(using=DEFAULT_DB_ALIAS)
+                transaction.commit_unless_managed(using=self.db)
                 return
     
     def create_migrations(self):
-        print "BEGIN;"
-        for s in get_sql_for_new_models():
-            print s
+        statements = get_sql_for_new_models()
+        if len(statements) > 0:
+            print "BEGIN;"
+            for s in statements:
+                print s
     
     def execute_migrations(self):
         migrations = self._filter_down()
@@ -110,23 +112,30 @@ class Command(BaseCommand):
             print "There are no migrations to apply."
             return
         
+        created_models = []
         for migration in migrations:
-            connection = connections[DEFAULT_DB_ALIAS]
-            cursor = connection.cursor()
             migration_path = os.path.join(self.path, migration)
             fp = open(migration_path, "rb")
-            p = Popen("python manage.py dbshell".split(), stdin=fp)
+            lines = fp.readlines()
+            fp.close()
+            content = "".join(lines)
+            to_execute = "".join([l for l in lines if not l.startswith("### New Model: ")])
             
-            # @@@ Detect if CREATE TABLE exists in migrations and fire signals et al (simulating syncdb)
-            fp.seek(0)
-            content = fp.read()
-            if "CREATE TABLE" in content:
-                print "There was a table created, fire some signals or something"
-
+            p = Popen("python manage.py dbshell".split(), stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+            p.communicate(input=to_execute)[0]
+            
+            created_models.extend([
+                get_model(
+                    *l.replace("### New Model: ", "").strip().split(".")
+                ) 
+                for l in lines if l.startswith("### New Model: ")
+            ])
+            
             Migration.objects.create(migration_label=migration, content=content, scm_version=self._get_rev(migration_path))
-            
-        # @@@ Create contenttype records and permissions ? (simulating syncdb)
-        pass
+            fp.close()
+        
+        emit_post_sync_signal(created_models, self.verbosity, self.interactive, self.db)
+        call_command('loaddata', 'initial_data', verbosity=self.verbosity, database=self.db)
     
     def list_migrations(self):
         migrations = self._filter_down()
@@ -149,6 +158,9 @@ class Command(BaseCommand):
         self.do_execute = options.get("do_execute")
         self.do_create = options.get("do_create")
         self.path = options.get("path")
+        self.verbosity = int(options.get('verbosity', 1))
+        self.interactive = options.get('interactive')
+        self.db = options.get('database', DEFAULT_DB_ALIAS)
         
         self.init_nashvegas()
 
