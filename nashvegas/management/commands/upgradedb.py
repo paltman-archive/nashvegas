@@ -20,7 +20,7 @@ class Command(BaseCommand):
                         dest = "do_execute", default = False,
                         help = "Execute migrations not in versions table."),
             make_option("-c", "--create", action = "store_true",
-                        dest = "do_create", default = True,
+                        dest = "do_create", default = False,
                         help = "Generates sql for models that are installed but not in your database."),
             make_option("-p", "--path", dest = "path",
                 default = os.path.join(
