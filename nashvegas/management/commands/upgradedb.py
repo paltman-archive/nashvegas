@@ -61,27 +61,28 @@ class Command(BaseCommand):
 
         return to_execute
 
-    # def _get_rev(self, fpath):
-    #     """Get an SCM verion number.  Try svn and git."""
-    #     rev = None
-    #     try:
-    #         cmd = ["git", "log", "-n1", "--pretty=format:"%h"", sql]
-    #         rev = Popen(cmd, stdout=PIPE).communicate()[0]
-    #     except:
-    #         pass
-    # 
-    #     if not rev:
-    #         try:
-    #             cmd = ["svn", "info", sql]
-    #             svninfo = Popen(cmd, stdout=PIPE).stdout.readlines()
-    #             for info in svninfo:
-    #                 tokens = info.split(":")
-    #                 if tokens[0].strip() == "Last Changed Rev":
-    #                     rev = tokens[1].strip()
-    #         except:
-    #             pass
-    # 
-    #     return rev
+    def _get_rev(self, fpath):
+        """Get an SCM verion number.  Try svn and git."""
+        rev = None
+        return rev
+        try:
+            cmd = ["git", "log", "-n1", "--pretty=format:\"%h\"", sql]
+            rev = Popen(cmd, stdout=PIPE).communicate()[0]
+        except:
+            pass
+    
+        if not rev:
+            try:
+                cmd = ["svn", "info", sql]
+                svninfo = Popen(cmd, stdout=PIPE).stdout.readlines()
+                for info in svninfo:
+                    tokens = info.split(":")
+                    if tokens[0].strip() == "Last Changed Rev":
+                        rev = tokens[1].strip()
+            except:
+                pass
+    
+        return rev
     
     def init_nashvegas(self):
         # @@@ make cleaner / check explicitly for model instead of looping over and doing string comparisons
