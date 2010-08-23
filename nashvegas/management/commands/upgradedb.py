@@ -1,6 +1,7 @@
 import os
 
 from optparse import make_option
+from subprocess import Popen
 
 from django.db import connections, transaction, DEFAULT_DB_ALIAS
 from django.conf import settings
@@ -96,13 +97,31 @@ class Command(BaseCommand):
                 return
     
     def create_migrations(self):
+        print "BEGIN;"
         for s in get_sql_for_new_models():
             print s
     
     def execute_migrations(self):
-        # @@@ Loop over _filter_down results
-        # @@@ Execute entire files at once (simulate ./manage.py dbshell < SCRIPT)
-        # @@@ Detect if CREATE TABLE exists in migrations and fire signals et al (simulating syncdb)
+        migrations = self._filter_down()
+        if len(migrations) == 0:
+            print "There are no migrations to apply."
+            return
+        
+        for migration in migrations:
+            connection = connections[DEFAULT_DB_ALIAS]
+            cursor = connection.cursor()
+            migration_path = os.path.join(self.path, migration)
+            fp = open(migration_path, "rb")
+            p = Popen("python manage.py dbshell".split(), stdin=fp)
+            
+            # @@@ Detect if CREATE TABLE exists in migrations and fire signals et al (simulating syncdb)
+            fp.seek(0)
+            content = fp.read()
+            if "CREATE TABLE" in content:
+                print "There was a table created, fire some signals or something"
+
+            Migration.objects.create(migration_label=migration, content=content, scm_version=self._get_rev(migration_path))
+            
         # @@@ Create contenttype records and permissions ? (simulating syncdb)
         pass
     
