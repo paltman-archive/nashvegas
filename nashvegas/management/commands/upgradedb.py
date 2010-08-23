@@ -42,10 +42,8 @@ class Command(BaseCommand):
         try:
             already_applied = Migration.objects.all().order_by("migration_label")
             
-            print "# ALREADY APPLIED:"
             for x in already_applied:
                 applied.append(x.migration_label)
-                print "#\t%s\tr%s" % (x.migration_label, x.date_created)
             
             in_directory = os.listdir(self.path)
             in_directory.sort()
@@ -58,10 +56,6 @@ class Command(BaseCommand):
             for script in scripts_in_directory:
                 if script not in applied:
                     to_execute.append(script)
-            
-            print "# TO EXECUTE:"
-            for script in to_execute:
-                print "#\t%s" % script
         except OSError, e:
             print str(e)
 
