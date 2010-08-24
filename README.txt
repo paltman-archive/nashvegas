@@ -44,3 +44,29 @@ The model, ``nashvegas.Migration`` will get synced into your database if it
 doesn't exist when you go to execute any of the ``upgradedb`` commands.  In this
 model the scripts that have been executed will be recorded, effectively
 versioning your database.
+
+In addition to sql scripts, ``--execute`` will also execute python scripts that
+are in the directory.  This are run in filename order interleaved with the sql
+scripts.  For example::
+
+    0001.sql
+    0002.py
+    0003.sql
+
+The Python script will be executed 2nd between ``0000.sql`` and ``0003.sql``. The
+script will only be executed if the module contains a callable named ``migrate``.
+It is a good idea to put all your executing code within a class or series of
+functions or within a singe ``migrate()`` function so as to avoid code executing
+upon import.
+
+For example, your script might light like this if you need to update all your
+product codes on next release::
+
+    from store.models import Product
+    
+    def migrate():
+        for product in Product.objects.all():
+            product.code = "NEW-%s" % product.code
+            product.save()
+
+
