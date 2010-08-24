@@ -1,4 +1,5 @@
 import os
+import sys
 
 from optparse import make_option
 from subprocess import Popen, PIPE, STDOUT
@@ -12,6 +13,9 @@ from django.core.management.sql import emit_post_sync_signal
 
 from nashvegas.models import Migration
 from nashvegas.utils import get_sql_for_new_models
+
+
+sys.path.append("migrations")
 
 
 class Command(BaseCommand):
@@ -119,17 +123,22 @@ class Command(BaseCommand):
             lines = fp.readlines()
             fp.close()
             content = "".join(lines)
-            to_execute = "".join([l for l in lines if not l.startswith("### New Model: ")])
             
-            p = Popen("python manage.py dbshell".split(), stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-            p.communicate(input=to_execute)[0]
-            
-            created_models.extend([
-                get_model(
-                    *l.replace("### New Model: ", "").strip().split(".")
-                ) 
-                for l in lines if l.startswith("### New Model: ")
-            ])
+            if migration_path.endswith(".sql"):
+                to_execute = "".join([l for l in lines if not l.startswith("### New Model: ")])
+                p = Popen("python manage.py dbshell".split(), stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+                p.communicate(input=to_execute)[0]
+                
+                created_models.extend([
+                    get_model(
+                        *l.replace("### New Model: ", "").strip().split(".")
+                    ) 
+                    for l in lines if l.startswith("### New Model: ")
+                ])
+            elif migration_path.endswith(".py"):
+                module = __import__("%s" % os.path.splitext(migration)[0])
+                if hasattr(module, 'migrate'):
+                    module.migrate()
             
             Migration.objects.create(migration_label=migration, content=content, scm_version=self._get_rev(migration_path))
             fp.close()
