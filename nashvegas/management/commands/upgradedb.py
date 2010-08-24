@@ -137,7 +137,7 @@ class Command(BaseCommand):
                 ])
             elif migration_path.endswith(".py"):
                 module = __import__("%s" % os.path.splitext(migration)[0])
-                if hasattr(module, 'migrate'):
+                if hasattr(module, 'migrate') and callable(module.migrate):
                     module.migrate()
             
             Migration.objects.create(migration_label=migration, content=content, scm_version=self._get_rev(migration_path))
