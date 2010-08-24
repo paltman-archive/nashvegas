@@ -2,42 +2,45 @@
 Nashvegas
 =========
 
-The purpose of this app is to enable a plug and play method for managing database changes.
+The purpose of this app is to enable a plug and play method for managing
+database changes.
 
-It really just abstracting out into a reusable app, a script that I have been using in a 
-four person development team quite successfully for more than 6 months now.  
+Database migrations is a large topic with a lot of different approaches.  This
+approach worked well for my needs and maybe it will for you as well.
 
-Database migrations is a large topic with a lot of different approaches.  This approach 
-worked well for my needs so I thought I'd put it out on the "Interwebs" and let the 
-community judge it for it's usefulness.
 
 How to Use
 ----------
 
-* Add the application to your PYTHON_PATH
+* pip install nashvegas
 * Add the application to your INSTALLED_APPS list in your settings.py file.
 * Execute the command line:
 
-    $ ./manage.py upgradedb --list|--execute [--path /path/to/scripts]
+    $ ./manage.py upgradedb --create|--list|--execute
+
 
 Options
 -------
 
-* --list - Lists all the scripts that will need to be executed.
-* --execute - Executes all the scripts that need to be executed.
-* --path - The fully qualified path to the where the database scripts are located.
-           This defaults to {{ PROJECT_PATH }}/db
+* ``--create`` - Compares database with current models in apps that are
+                 installed and outputs the sql for them so that you can easily
+                 pipe the contents to a migration.
+* ``--list`` - Lists all the scripts that will need to be executed.
+* ``--execute`` - Executes all the scripts that need to be executed.
+
 
 Conventions
 -----------
 
-Part of the simplicity of this solution is based on the naming conventions of the sql
-scripts.  They should be named:
+Part of the simplicity of this solution is based on the naming conventions of
+the sql scripts.  They should be named in a manner that enforces order.  Some
+examples include::
 
-    YYYYMMDD-##.sql
+    YYYYMMDD-01.sql
+    0001_short_comment_about_migration.sql
+    0001.sql
 
-Where YYYY is the 4 digit year, MM is the two digit month, and DD is the two digit day.
-
-A tabled called `versions` will be created in your database the first time this command
-executes.  The rows in this table track which scripts have been executed.  You should 
-rarely if ever need to examine this table, or even be aware of its existence.
+The model, ``nashvegas.Migration`` will get synced into your database if it
+doesn't exist when you go to execute any of the ``upgradedb`` commands.  In this
+model the scripts that have been executed will be recorded, effectively
+versioning your database.
