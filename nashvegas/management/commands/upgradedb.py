@@ -30,6 +30,9 @@ class Command(BaseCommand):
             make_option("-c", "--create", action = "store_true",
                         dest = "do_create", default = False,
                         help = "Generates sql for models that are installed but not in your database."),
+            make_option("-s", "--seed", action = "store_true",
+                        dest = "do_seed", default = False,
+                        help = "Seed nashvegas with migrations that have previously been applied in another manner."),
             make_option("-p", "--path", dest = "path",
                 default = os.path.join(
                     os.path.dirname(
@@ -125,8 +128,17 @@ class Command(BaseCommand):
             content = "".join(lines)
             
             if migration_path.endswith(".sql"):
-                to_execute = "".join([l for l in lines if not l.startswith("### New Model: ")])
-                p = Popen("python manage.py dbshell".split(), stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+                to_execute = "".join(
+                    [l for l in lines if not l.startswith("### New Model: ")]
+                )
+                
+                p = Popen(
+                    "python manage.py dbshell".split(),
+                    stdin=PIPE,
+                    stdout=PIPE,
+                    stderr=STDOUT
+                )
+                
                 p.communicate(input=to_execute)[0]
                 
                 created_models.extend([
@@ -140,11 +152,44 @@ class Command(BaseCommand):
                 if hasattr(module, 'migrate') and callable(module.migrate):
                     module.migrate()
             
-            Migration.objects.create(migration_label=migration, content=content, scm_version=self._get_rev(migration_path))
+            Migration.objects.create(
+                migration_label=migration,
+                content=content,
+                scm_version=self._get_rev(migration_path)
+            )
             fp.close()
         
-        emit_post_sync_signal(created_models, self.verbosity, self.interactive, self.db)
-        call_command('loaddata', 'initial_data', verbosity=self.verbosity, database=self.db)
+        emit_post_sync_signal(
+            created_models,
+            self.verbosity,
+            self.interactive,
+            self.db
+        )
+        
+        call_command(
+            'loaddata',
+            'initial_data',
+            verbosity=self.verbosity,
+            database=self.db
+        )
+    
+    def seed_migrations(self):
+        migrations = [os.path.join(self.path, m) for m in self._filter_down()]
+        if len(self.args) > 0:
+            migrations = [arg for arg in self.args if not arg.endswith(".pyc")]
+        for migration in migrations:
+            m, created = Migration.objects.get_or_create(
+                migration_label=os.path.basename(migration),
+                content=open(migration, "rb").read()
+            )
+            if created:
+                # this might have been executed prior to committing
+                m.scm_version = self._get_rev(migration)
+                m.save()
+                print m.migration_label, "has been seeded"
+            else:
+                print m.migration_label, "was already applied."
+    
     
     def list_migrations(self):
         migrations = self._filter_down()
@@ -166,6 +211,9 @@ class Command(BaseCommand):
         self.do_list = options.get("do_list")
         self.do_execute = options.get("do_execute")
         self.do_create = options.get("do_create")
+        self.do_seed = options.get("do_seed")
+        self.args = args
+        
         self.path = options.get("path")
         self.verbosity = int(options.get('verbosity', 1))
         self.interactive = options.get('interactive')
@@ -182,3 +230,6 @@ class Command(BaseCommand):
         if self.do_list:
             self.list_migrations()
         
+        if self.do_seed:
+            self.seed_migrations()
+

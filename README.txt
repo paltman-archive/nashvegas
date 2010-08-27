@@ -27,6 +27,8 @@ Options
                  pipe the contents to a migration.
 * ``--list`` - Lists all the scripts that will need to be executed.
 * ``--execute`` - Executes all the scripts that need to be executed.
+* ``--seed`` - Populates Migration model with scripts that have already been
+               applied to your database and effectively want to skip execution.
 
 
 Conventions

@@ -9,4 +9,3 @@ class Migration(models.Model):
     date_created = models.DateTimeField(default=datetime.now)
     content = models.TextField()
     scm_version = models.CharField(max_length=50, null=True, blank=True)
-    
