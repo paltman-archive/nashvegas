@@ -132,6 +132,7 @@ class Command(BaseCommand):
                     [l for l in lines if not l.startswith("### New Model: ")]
                 )
                 
+                # @@@ do something better than this
                 p = Popen(
                     "python manage.py dbshell".split(),
                     stdin=PIPE,
@@ -139,7 +140,10 @@ class Command(BaseCommand):
                     stderr=STDOUT
                 )
                 
-                p.communicate(input=to_execute)[0]
+                # @@@ again, this is a bit nasty, improve this
+                (out, err) = p.communicate(input=to_execute)
+                print "stdout:", out
+                print "stderr:", err
                 
                 created_models.extend([
                     get_model(
