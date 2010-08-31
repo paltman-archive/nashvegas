@@ -12,7 +12,7 @@ from django.core.management.base import BaseCommand
 from django.core.management.sql import emit_post_sync_signal
 
 from nashvegas.models import Migration
-from nashvegas.utils import get_sql_for_new_models
+from nashvegas.utils import get_sql_for_new_models, get_db_exec_args
 
 
 sys.path.append("migrations")
@@ -132,18 +132,22 @@ class Command(BaseCommand):
                     [l for l in lines if not l.startswith("### New Model: ")]
                 )
                 
-                # @@@ do something better than this
                 p = Popen(
-                    "python manage.py dbshell".split(),
+                    get_db_exec_args(self.db),
                     stdin=PIPE,
                     stdout=PIPE,
                     stderr=STDOUT
                 )
                 
-                # @@@ again, this is a bit nasty, improve this
                 (out, err) = p.communicate(input=to_execute)
                 print "stdout:", out
                 print "stderr:", err
+                
+                if p.returncode != 0:
+                    sys.exit(
+                        "\nExecution stopped!\n\nThere was an error in %s\n" % \
+                            migration_path
+                    )
                 
                 created_models.extend([
                     get_model(
