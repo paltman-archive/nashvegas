@@ -139,6 +139,7 @@ class Command(BaseCommand):
                     stderr=STDOUT
                 )
                 
+                print migration
                 (out, err) = p.communicate(input=to_execute)
                 print "stdout:", out
                 print "stderr:", err
@@ -156,6 +157,7 @@ class Command(BaseCommand):
                     for l in lines if l.startswith("### New Model: ")
                 ])
             elif migration_path.endswith(".py"):
+                print migration
                 module = __import__("%s" % os.path.splitext(migration)[0])
                 if hasattr(module, 'migrate') and callable(module.migrate):
                     module.migrate()
