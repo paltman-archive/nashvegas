@@ -144,12 +144,19 @@ class Command(BaseCommand):
                     [l for l in lines if not l.startswith("### New Model: ")]
                 )
                 
-                p = Popen(
-                    get_db_exec_args(self.db),
-                    stdin=PIPE,
-                    stdout=PIPE,
-                    stderr=STDOUT
-                )
+                cmd = get_db_exec_args(self.db)
+                try:
+                    p = Popen(
+                        cmd,
+                        stdin=PIPE,
+                        stdout=PIPE,
+                        stderr=STDOUT
+                    )
+                except:
+                    sys.exit(
+                        "There was an error executing: %\nPlease make sure that"
+                        " this command is in your path." % " ".join(cmd)
+                    )
                 
                 print migration
                 (out, err) = p.communicate(input=to_execute)
