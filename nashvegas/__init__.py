@@ -1,5 +1,5 @@
-VERSION = (0, 2, 0, "a", 1) # following PEP 386
-DEV_N = 5
+VERSION = (0, 2, 1, "f") # following PEP 386
+DEV_N = 0
 
 
 def get_version():

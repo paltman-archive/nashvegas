@@ -154,7 +154,7 @@ class Command(BaseCommand):
                     )
                 except:
                     sys.exit(
-                        "There was an error executing: %\nPlease make sure that"
+                        "There was an error executing: %s\nPlease make sure that"
                         " this command is in your path." % " ".join(cmd)
                     )
                 
