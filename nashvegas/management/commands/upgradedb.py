@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 
 from optparse import make_option
 from subprocess import Popen, PIPE, STDOUT
@@ -125,83 +126,88 @@ class Command(BaseCommand):
             for s in statements:
                 print s
     
-    def execute_migrations(self):
+    @transaction.commit_manually
+    def execute_migrations(self, show_traceback=False):
         migrations = self._filter_down()
-        if len(migrations) == 0:
+        
+        if not len(migrations):
             print "There are no migrations to apply."
             return
         
         created_models = []
-        for migration in migrations:
-            migration_path = os.path.join(self.path, migration)
-            fp = open(migration_path, "rb")
-            lines = fp.readlines()
-            fp.close()
-            content = "".join(lines)
-            
-            if migration_path.endswith(".sql"):
-                to_execute = "".join(
-                    [l for l in lines if not l.startswith("### New Model: ")]
+        
+        try:
+            for migration in migrations:
+                migration_path = os.path.join(self.path, migration)
+                fp = open(migration_path, "rb")
+                lines = fp.readlines()
+                fp.close()
+                content = "".join(lines)
+                
+                if migration_path.endswith(".sql"):
+                    to_execute = "".join(
+                        [l for l in lines if not l.startswith("### New Model: ")]
+                    )
+                    connection = connections[self.db]
+                    cursor = connection.cursor()
+                    
+                    sys.stdout.write("Executing %s... " % migration)
+                    
+                    try:
+                        cursor.execute(to_execute)
+                    except Exception:
+                        sys.stdout.write("failed\n")
+                        if show_traceback:
+                            traceback.print_exc()
+                        raise MigrationError()
+                    else:
+                        sys.stdout.write("success\n")
+                    
+                    created_models.extend([
+                        get_model(
+                            *l.replace("### New Model: ", "").strip().split(".")
+                        ) 
+                        for l in lines if l.startswith("### New Model: ")
+                    ])
+                elif migration_path.endswith(".py"):
+                    sys.stdout.write("Executing %s... " % migration)
+                    
+                    module = {}
+                    execfile(migration_path, {}, module)
+                    
+                    if "migrate" in module and callable(module["migrate"]):
+                        try:
+                            module["migrate"]()
+                        except Exception:
+                            sys.stdout.write("failed\n")
+                            if show_traceback:
+                                traceback.print_exc()
+                            raise MigrationError()
+                        else:
+                            sys.stdout.write("success\n")
+                
+                Migration.objects.create(
+                    migration_label=migration,
+                    content=content,
+                    scm_version=self._get_rev(migration_path)
                 )
-                
-                cmd = get_db_exec_args(self.db)
-                try:
-                    p = Popen(
-                        cmd,
-                        stdin=PIPE,
-                        stdout=PIPE,
-                        stderr=STDOUT
-                    )
-                except:
-                    sys.exit(
-                        "There was an error executing: %s\nPlease make sure that"
-                        " this command is in your path." % " ".join(cmd)
-                    )
-                
-                print migration
-                (out, err) = p.communicate(input=to_execute)
-                print "stdout:", out
-                print "stderr:", err
-                
-                if p.returncode != 0:
-                    sys.exit(
-                        "\nExecution stopped!\n\nThere was an error in %s\n" % \
-                            migration_path
-                    )
-                
-                created_models.extend([
-                    get_model(
-                        *l.replace("### New Model: ", "").strip().split(".")
-                    ) 
-                    for l in lines if l.startswith("### New Model: ")
-                ])
-            elif migration_path.endswith(".py"):
-                print migration
-                module = {}
-                execfile(migration_path, {}, module)
-                if "migrate" in module and callable(module["migrate"]):
-                    module["migrate"]()
-            
-            Migration.objects.create(
-                migration_label=migration,
-                content=content,
-                scm_version=self._get_rev(migration_path)
+        except Exception, e:
+            transaction.rollback(using=self.db)
+            sys.stdout.write("Rolled back all migrations\n")
+        else:
+            emit_post_sync_signal(
+                created_models,
+                self.verbosity,
+                self.interactive,
+                self.db
             )
-            fp.close()
-        
-        emit_post_sync_signal(
-            created_models,
-            self.verbosity,
-            self.interactive,
-            self.db
-        )
-        
-        call_command(
-            'loaddata',
-            'initial_data',
-            verbosity=self.verbosity,
-            database=self.db
-        )
+            call_command(
+                "loaddata",
+                "initial_data",
+                verbosity=self.verbosity,
+                database=self.db
+            )
+            transaction.commit(using=self.db)
     
     def seed_migrations(self, stop_at=None):
         # @@@ the command-line interface needs to be re-thinked
@@ -258,7 +264,7 @@ class Command(BaseCommand):
             self.create_migrations()
         
         if self.do_execute:
-            self.execute_migrations()
+            self.execute_migrations(show_traceback=True)
         
         if self.do_list:
             self.list_migrations()
