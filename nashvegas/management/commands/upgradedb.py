@@ -194,6 +194,7 @@ class Command(BaseCommand):
         except Exception, e:
             transaction.rollback(using=self.db)
             sys.stdout.write("Rolled back all migrations\n")
+            sys.exit(1)
         else:
             emit_post_sync_signal(
                 created_models,
