@@ -26,8 +26,12 @@ def get_sql_for_new_models():
     def model_installed(model):
         opts = model._meta
         converter = connection.introspection.table_name_converter
-        return not ((converter(opts.db_table) in tables) or
-            (opts.auto_created and converter(opts.auto_created._meta.db_table) in tables))
+        db_table_in = (converter(opts.db_table) in tables)
+        auto_create_in = (
+            opts.auto_created and \
+            converter(opts.auto_created._meta.db_table) in tables
+        )
+        return not (db_table_in or auto_create_in)
     
     manifest = SortedDict(
         (app_name, filter(model_installed, model_list))
