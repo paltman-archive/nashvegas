@@ -43,39 +43,62 @@ def get_sql_for_new_models():
     for app_name, model_list in manifest.items():
         for model in model_list:
             # Create the model's database table, if it doesn't already exist.
-            sql, references = connection.creation.sql_create_model(model, no_style(), seen_models)
+            sql, references = connection.creation.sql_create_model(
+                model,
+                no_style(),
+                seen_models
+            )
+            
             seen_models.add(model)
             created_models.add(model)
-            statements.append("### New Model: %s.%s" % (app_name, str(model).replace("'>", "").split(".")[-1]))
+            statements.append("### New Model: %s.%s" % (
+                app_name,
+                str(model).replace("'>", "").split(".")[-1]
+            ))
+            
             for refto, refs in references.items():
                 pending_references.setdefault(refto, []).extend(refs)
                 if refto in seen_models:
-                    sql.extend(connection.creation.sql_for_pending_references(refto, no_style(), pending_references))
-            sql.extend(connection.creation.sql_for_pending_references(model, no_style(), pending_references))
+                    sql.extend(
+                        connection.creation.sql_for_pending_references(
+                            refto,
+                            no_style(),
+                            pending_references
+                        )
+                    )
+            
+            sql.extend(
+                connection.creation.sql_for_pending_references(
+                    model,
+                    no_style(),
+                    pending_references
+                )
+            )
             statements.extend(sql)
-    if sql:
-        statements.append("COMMIT;")
     
     custom_sql = None
     for app_name, model_list in manifest.items():
         for model in model_list:
             if model in created_models:
-                custom_sql = custom_sql_for_model(model, no_style(), connection)
+                custom_sql = custom_sql_for_model(
+                    model,
+                    no_style(),
+                    connection
+                )
+                
                 if custom_sql:
                     statements.extend(custom_sql)
-    
-    if custom_sql:
-        statements.append("COMMIT;")
     
     index_sql = None
     for app_name, model_list in manifest.items():
         for model in model_list:
             if model in created_models:
-                index_sql = connection.creation.sql_indexes_for_model(model, no_style())
+                index_sql = connection.creation.sql_indexes_for_model(
+                    model,
+                    no_style()
+                )
+                
                 if index_sql:
                     statements.extend(index_sql)
-    
-    if index_sql:
-        statements.append("COMMIT;")
     
     return statements

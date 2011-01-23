@@ -123,7 +123,7 @@ class Command(BaseCommand):
         statements = get_sql_for_new_models()
         if len(statements) > 0:
             for s in statements:
-                print s.replace("COMMIT;", "")
+                print s
     
     @transaction.commit_manually
     def execute_migrations(self, show_traceback=False):
