@@ -191,7 +191,7 @@ class Command(BaseCommand):
                     content=content,
                     scm_version=self._get_rev(migration_path)
                 )
-        except Exception, e:
+        except Exception:
             transaction.rollback(using=self.db)
             sys.stdout.write("Rolled back all migrations\n")
             sys.exit(1)
