@@ -122,9 +122,8 @@ class Command(BaseCommand):
     def create_migrations(self):
         statements = get_sql_for_new_models()
         if len(statements) > 0:
-            print "BEGIN;"
             for s in statements:
-                print s
+                print s.replace("COMMIT;", "")
     
     @transaction.commit_manually
     def execute_migrations(self, show_traceback=False):
