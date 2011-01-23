@@ -78,7 +78,7 @@ class Command(BaseCommand):
                     scripts_in_directory.append((number, script))
             
             for number, script in scripts_in_directory:
-                if script not in applied and number < stop_at:
+                if script not in applied and number <= stop_at:
                     to_execute.append(script)
         except OSError, e:
             print str(e)
