@@ -38,7 +38,6 @@ Part of the simplicity of this solution is based on the naming conventions of
 the sql scripts.  They should be named in a manner that enforces order.  Some
 examples include::
 
-    YYYYMMDD-01.sql
     0001_short_comment_about_migration.sql
     0001.sql
 
