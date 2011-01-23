@@ -3,7 +3,7 @@ import sys
 import traceback
 
 from optparse import make_option
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE
 
 from django.db import connections, transaction, DEFAULT_DB_ALIAS
 from django.db.models import get_model
@@ -13,7 +13,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.core.management.sql import emit_post_sync_signal
 
 from nashvegas.models import Migration
-from nashvegas.utils import get_sql_for_new_models, get_db_exec_args
+from nashvegas.utils import get_sql_for_new_models
 
 
 sys.path.append("migrations")
