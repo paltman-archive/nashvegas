@@ -38,9 +38,9 @@ class Command(BaseCommand):
             make_option("-s", "--seed", action = "store_true",
                         dest = "do_seed", default = False,
                         help = "Seed nashvegas with migrations that have previously been applied in another manner."),
-            make_option('--database', action='store', dest='database',
-                        default=DEFAULT_DB_ALIAS, help='Nominates a database to synchronize. '
-                'Defaults to the "default" database.'),
+            make_option("--database", action="store", dest="database",
+                        default=DEFAULT_DB_ALIAS, help="Nominates a database to synchronize. "
+                "Defaults to the \"default\" database."),
             make_option("-p", "--path", dest = "path",
                 default = os.path.join(
                     os.path.dirname(
@@ -89,7 +89,9 @@ class Command(BaseCommand):
         return to_execute
 
     def _get_rev(self, fpath):
-        """Get an SCM verion number.  Try svn and git."""
+        """
+        Get an SCM verion number. Try svn and git.
+        """
         rev = None
         
         try:
@@ -257,9 +259,9 @@ class Command(BaseCommand):
         self.args = args
         
         self.path = options.get("path")
-        self.verbosity = int(options.get('verbosity', 1))
-        self.interactive = options.get('interactive')
-        self.db = options.get('database', DEFAULT_DB_ALIAS)
+        self.verbosity = int(options.get("verbosity", 1))
+        self.interactive = options.get("interactive")
+        self.db = options.get("database", DEFAULT_DB_ALIAS)
         
         self.init_nashvegas()
 
