@@ -38,6 +38,9 @@ class Command(BaseCommand):
             make_option("-s", "--seed", action = "store_true",
                         dest = "do_seed", default = False,
                         help = "Seed nashvegas with migrations that have previously been applied in another manner."),
+            make_option('--database', action='store', dest='database',
+                        default=DEFAULT_DB_ALIAS, help='Nominates a database to synchronize. '
+                'Defaults to the "default" database.'),
             make_option("-p", "--path", dest = "path",
                 default = os.path.join(
                     os.path.dirname(
