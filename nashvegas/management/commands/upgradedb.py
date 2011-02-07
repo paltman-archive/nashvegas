@@ -26,30 +26,30 @@ class MigrationError(Exception):
 class Command(BaseCommand):
     
     option_list = BaseCommand.option_list + (
-            make_option("-l", "--list", action = "store_true",
-                        dest = "do_list", default = False,
-                        help = "Enumerate the list of migrations to execute."),
-            make_option("-e", "--execute", action = "store_true",
-                        dest = "do_execute", default = False,
-                        help = "Execute migrations not in versions table."),
-            make_option("-c", "--create", action = "store_true",
-                        dest = "do_create", default = False,
-                        help = "Generates sql for models that are installed but not in your database."),
-            make_option("-s", "--seed", action = "store_true",
-                        dest = "do_seed", default = False,
-                        help = "Seed nashvegas with migrations that have previously been applied in another manner."),
-            make_option("--database", action="store", dest="database",
-                        default=DEFAULT_DB_ALIAS, help="Nominates a database to synchronize. "
-                "Defaults to the \"default\" database."),
-            make_option("-p", "--path", dest = "path",
-                default = os.path.join(
-                    os.path.dirname(
-                        os.path.normpath(
-                            os.sys.modules[settings.SETTINGS_MODULE].__file__
-                        )
-                    ), "migrations"
-                ),
-                help="The path to the database migration scripts."))
+        make_option("-l", "--list", action = "store_true",
+                    dest = "do_list", default = False,
+                    help = "Enumerate the list of migrations to execute."),
+        make_option("-e", "--execute", action = "store_true",
+                    dest = "do_execute", default = False,
+                    help = "Execute migrations not in versions table."),
+        make_option("-c", "--create", action = "store_true",
+                    dest = "do_create", default = False,
+                    help = "Generates sql for models that are installed but not in your database."),
+        make_option("-s", "--seed", action = "store_true",
+                    dest = "do_seed", default = False,
+                    help = "Seed nashvegas with migrations that have previously been applied in another manner."),
+        make_option("--database", action="store", dest="database",
+                    default=DEFAULT_DB_ALIAS, help="Nominates a database to synchronize. "
+            "Defaults to the \"default\" database."),
+        make_option("-p", "--path", dest = "path",
+            default = os.path.join(
+                os.path.dirname(
+                    os.path.normpath(
+                        os.sys.modules[settings.SETTINGS_MODULE].__file__
+                    )
+                ), "migrations"
+            ),
+            help="The path to the database migration scripts."))
     help = "Upgrade database."
 
     def _filter_down(self, stop_at=None):
