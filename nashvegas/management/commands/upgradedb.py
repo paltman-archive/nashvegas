@@ -68,6 +68,8 @@ class Command(BaseCommand):
                 applied.append(x.migration_label)
             
             in_directory = os.listdir(self.path)
+            in_directory = [migration for migration in in_directory if
+                            not migration.startswith(".")]
             in_directory.sort()
             applied.sort()
             
