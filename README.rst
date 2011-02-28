@@ -14,7 +14,7 @@ Documentation
 
 You can find the documentation in the ``docs/`` folder of the repo or online at:
 
-    http://readthedocs.org/projects/nashvegas/
+    http://nashvegas.readthedocs.org
 
 
 Installation
