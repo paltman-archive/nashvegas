@@ -26,3 +26,11 @@ Installation is simple::
 
 Then add ``nashvegas`` to your INSTALLED_APPS in your Django ``settings.py``
 file.
+
+
+Support
+-------
+
+You can either log issues on the Github issue tracker for this project or pop
+into #nashvegas on Freenode.
+
