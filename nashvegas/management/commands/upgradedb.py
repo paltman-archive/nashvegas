@@ -220,15 +220,17 @@ class Command(BaseCommand):
                 )
         except Exception:
             transaction.rollback(using=self.db)
-            sys.stdout.write("Rolled back all migrations\n")
+            sys.stdout.write("Rolled back all migrations.\n")
             sys.exit(1)
         else:
+            sys.stdout.write("Emitting post sync signal.\n")
             emit_post_sync_signal(
                 created_models,
                 self.verbosity,
                 self.interactive,
                 self.db
             )
+            sys.stdout.write("Running loaddata for initial_data fixtures.\n")
             call_command(
                 "loaddata",
                 "initial_data",
