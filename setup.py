@@ -12,7 +12,7 @@ setup(
     name="nashvegas",
     version=VERSION,
     description="nashvegas is a management command for managing Django database migrations",
-    long_description=read("README.txt"),
+    long_description=read("README.rst"),
     author="Patrick Altman",
     author_email="paltman@gmail.com",
     maintainer="Patrick Altman",
