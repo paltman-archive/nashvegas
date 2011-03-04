@@ -160,7 +160,7 @@ class Command(BaseCommand):
         if not len(migrations):
             sys.stdout.write("There are no migrations to apply.\n")
         
-        created_models = []
+        created_models = set()
         
         try:
             for migration in migrations:
@@ -189,12 +189,13 @@ class Command(BaseCommand):
                     else:
                         sys.stdout.write("success\n")
                     
-                    created_models.extend([
-                        get_model(
-                            *l.replace("### New Model: ", "").strip().split(".")
-                        ) 
-                        for l in lines if l.startswith("### New Model: ")
-                    ])
+                    for l in lines:
+                        if l.startswith("### New Model: "):
+                            created_models.add(
+                                get_model(
+                                    *l.replace("### New Model: ", "").strip().split(".")
+                                ) 
+                            )
                 elif migration_path.endswith(".py"):
                     sys.stdout.write("Executing %s... " % migration)
                     
