@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.core.management.sql import emit_post_sync_signal
+from django.utils.importlib import import_module
 
 from nashvegas.models import Migration
 from nashvegas.utils import get_sql_for_new_models
@@ -116,6 +117,26 @@ class Command(BaseCommand):
         return rev
     
     def init_nashvegas(self):
+        # Copied from line 35 of django.core.management.commands.syncdb
+        # Import the 'management' module within each installed app, to register
+        # dispatcher events.
+        for app_name in settings.INSTALLED_APPS:
+            try:
+                import_module('.management', app_name)
+            except ImportError, exc:
+                # This is slightly hackish. We want to ignore ImportErrors
+                # if the "management" module itself is missing -- but we don't
+                # want to ignore the exception if the management module exists
+                # but raises an ImportError for some reason. The only way we
+                # can do this is to check the text of the exception. Note that
+                # we're a bit broad in how we check the text, because different
+                # Python implementations may not use the same text.
+                # CPython uses the text "No module named management"
+                # PyPy uses "No module named myproject.myapp.management"
+                msg = exc.args[0]
+                if not msg.startswith('No module named') or 'management' not in msg:
+                    raise
+        
         # @@@ make cleaner / check explicitly for model instead of looping over and doing string comparisons
         connection = connections[self.db]
         cursor = connection.cursor()
