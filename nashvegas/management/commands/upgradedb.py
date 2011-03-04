@@ -158,8 +158,7 @@ class Command(BaseCommand):
         migrations = self._filter_down()
         
         if not len(migrations):
-            print "There are no migrations to apply."
-            return
+            sys.stdout.write("There are no migrations to apply.\n")
         
         created_models = []
         
