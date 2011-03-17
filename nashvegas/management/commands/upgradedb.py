@@ -218,11 +218,6 @@ class Command(BaseCommand):
                     content=content,
                     scm_version=self._get_rev(migration_path)
                 )
-        except Exception:
-            transaction.rollback(using=self.db)
-            sys.stdout.write("Rolled back all migrations.\n")
-            sys.exit(1)
-        else:
             sys.stdout.write("Emitting post sync signal.\n")
             emit_post_sync_signal(
                 created_models,
@@ -237,6 +232,11 @@ class Command(BaseCommand):
                 verbosity=self.verbosity,
                 database=self.db
             )
+        except Exception:
+            transaction.rollback(using=self.db)
+            sys.stdout.write("Rolled back all migrations.\n")
+            raise
+        else:
             transaction.commit(using=self.db)
     
     def seed_migrations(self, stop_at=None):
