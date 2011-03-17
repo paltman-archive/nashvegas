@@ -148,7 +148,7 @@ class Command(BaseCommand):
                 return
     
     def create_migrations(self):
-        statements = get_sql_for_new_models()
+        statements = get_sql_for_new_models(self.args)
         if len(statements) > 0:
             for s in statements:
                 print s

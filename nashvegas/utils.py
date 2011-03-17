@@ -4,9 +4,9 @@ from django.db import connections, router, models, DEFAULT_DB_ALIAS
 from django.utils.datastructures import SortedDict
 
 
-def get_sql_for_new_models():
+def get_sql_for_new_models(apps=None):
     """
-    Unashamedly copied and tweaked from djang.core.management.commands.syncdb
+    Unashamedly copied and tweaked from django.core.management.commands.syncdb
     """
     connection = connections[DEFAULT_DB_ALIAS]
     
@@ -15,13 +15,18 @@ def get_sql_for_new_models():
     seen_models = connection.introspection.installed_models(tables)
     created_models = set()
     pending_references = {}
-
+    
+    if apps is None:
+        apps = models.get_apps()
+    else:
+        apps = [models.get_app(a) for a in apps]
+    
     # Build the manifest of apps and models that are to be synchronized
     all_models = [
         (app.__name__.split('.')[-2],
             [m for m in models.get_models(app, include_auto_created=True)
             if router.allow_syncdb(DEFAULT_DB_ALIAS, m)])
-        for app in models.get_apps()
+        for app in apps
     ]
     def model_installed(model):
         opts = model._meta
