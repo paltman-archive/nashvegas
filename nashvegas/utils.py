@@ -16,10 +16,10 @@ def get_sql_for_new_models(apps=None):
     created_models = set()
     pending_references = {}
     
-    if apps is None:
-        apps = models.get_apps()
-    else:
+    if apps:
         apps = [models.get_app(a) for a in apps]
+    else:
+        apps = models.get_apps()
     
     # Build the manifest of apps and models that are to be synchronized
     all_models = [
