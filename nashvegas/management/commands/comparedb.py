@@ -54,11 +54,11 @@ class Command(BaseCommand):
         orig = connections[DEFAULT_DB_ALIAS].settings_dict["NAME"]
         connections[DEFAULT_DB_ALIAS].close()
         connections[DEFAULT_DB_ALIAS].settings_dict["NAME"] = self.name
-        call_command("upgradedb", do_execute=True)
-        new_sql = Popen(["pg_dump", "-s", self.name], stdout=PIPE).stdout.readlines()
+        call_command("syncdb", interactive=False, verbosity=0)
+        new_sql = Popen(command.split() + ["-s", self.name],
+                        stdout=PIPE).stdout.readlines()
         connections[DEFAULT_DB_ALIAS].close()
         connections[DEFAULT_DB_ALIAS].settings_dict["NAME"] = orig
-
         self.teardown_database()
 
         print "Outputing diff between the two..."
