@@ -248,6 +248,8 @@ class Command(BaseCommand):
             stop_at = int(self.args[0])
         except ValueError:
             raise CommandError("Invalid --seed migration")
+        except IndexError:
+            raise CommandError("Usage: ./manage.py upgradedb --seed <stop_at>")
         migrations = [os.path.join(self.path, m) for m in self._filter_down(stop_at=stop_at)]
         for migration in migrations:
             m, created = Migration.objects.get_or_create(
