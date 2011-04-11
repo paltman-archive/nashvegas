@@ -39,12 +39,15 @@ Options for upgradedb
 ---------------------
 
 * ``--create`` - Compares database with current models in apps that are
-                 installed and outputs the sql for them so that you can easily
-                 pipe the contents to a migration.
+  installed and outputs the sql for them so that you can easily pipe the
+  contents to a migration.
 * ``--list`` - Lists all the scripts that will need to be executed.
 * ``--execute`` - Executes all the scripts that need to be executed.
 * ``--seed`` - Populates Migration model with scripts that have already been
-               applied to your database and effectively want to skip execution.
+  applied to your database and effectively want to skip execution. Provide a
+  migration id to stop at. For instance, running
+  `./manage.py upgradedb --seed 005` will skip migrations 000 to 005 but not
+  006.
 
 
 Conventions
