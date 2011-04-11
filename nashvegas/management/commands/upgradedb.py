@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import traceback
 
@@ -18,6 +19,7 @@ from nashvegas.utils import get_sql_for_new_models
 
 
 sys.path.append("migrations")
+MIGRATION_NAME_RE = re.compile(r'(\d+)(.*)')
 
 
 class MigrationError(Exception):
@@ -76,10 +78,11 @@ class Command(BaseCommand):
             
             for script in in_directory:
                 name, ext = os.path.splitext(script)
-                try:
-                    number = int(name.split("_")[0])
-                except ValueError:
-                    raise MigrationError("Invalid migration file prefix (must begin with a number)")
+                match = MIGRATION_NAME_RE.match(name)
+                if match is None:
+                    raise MigrationError("Invalid migration file prefix "
+                                         "(must begin with a number)")
+                number = match.group(1)
                 if ext in [".sql", ".py"]:
                     scripts_in_directory.append((number, script))
             
