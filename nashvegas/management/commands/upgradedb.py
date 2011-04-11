@@ -82,7 +82,7 @@ class Command(BaseCommand):
                 if match is None:
                     raise MigrationError("Invalid migration file prefix "
                                          "(must begin with a number)")
-                number = match.group(1)
+                number = int(match.group(1))
                 if ext in [".sql", ".py"]:
                     scripts_in_directory.append((number, script))
             
