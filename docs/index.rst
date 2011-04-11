@@ -50,6 +50,23 @@ Options for upgradedb
   006.
 
 
+Configuration for comparedb
+---------------------------
+
+The `comparedb` command is available only for Postgres. It executes a few raw
+postgres shell commands which you might need to customize to add user
+credentials, encoding or specify database templates. This can be done through
+the `NASHVEGAS` dictionnary in your setting::
+
+    NASHVEGAS = {
+        'createdb': 'createdb -U postgres -T template0 -E UTF8',
+        'dropdb': 'dropdb -U postgres',
+        'pg_dump': 'pg_dump -U postgres',
+    }
+
+By default, nashvegas executes raw `createdb`, `dropdb` or `pg_dump` commands.
+
+
 Conventions
 -----------
 
