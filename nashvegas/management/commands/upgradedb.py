@@ -19,7 +19,7 @@ from nashvegas.utils import get_sql_for_new_models
 
 
 sys.path.append("migrations")
-MIGRATION_NAME_RE = re.compile(r'(\d+)(.*)')
+MIGRATION_NAME_RE = re.compile(r"(\d+)(.*)")
 
 
 class MigrationError(Exception):
@@ -125,7 +125,7 @@ class Command(BaseCommand):
         # dispatcher events.
         for app_name in settings.INSTALLED_APPS:
             try:
-                import_module('.management', app_name)
+                import_module(".management", app_name)
             except ImportError, exc:
                 # This is slightly hackish. We want to ignore ImportErrors
                 # if the "management" module itself is missing -- but we don't
@@ -137,7 +137,7 @@ class Command(BaseCommand):
                 # CPython uses the text "No module named management"
                 # PyPy uses "No module named myproject.myapp.management"
                 msg = exc.args[0]
-                if not msg.startswith('No module named') or 'management' not in msg:
+                if not msg.startswith("No module named") or "management" not in msg:
                     raise
         
         # @@@ make cleaner / check explicitly for model instead of looping over and doing string comparisons
