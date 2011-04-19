@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import traceback
 
@@ -18,6 +19,7 @@ from nashvegas.utils import get_sql_for_new_models
 
 
 sys.path.append("migrations")
+MIGRATION_NAME_RE = re.compile(r"(\d+)(.*)")
 
 
 class MigrationError(Exception):
@@ -76,10 +78,11 @@ class Command(BaseCommand):
             
             for script in in_directory:
                 name, ext = os.path.splitext(script)
-                try:
-                    number = int(name.split("_")[0])
-                except ValueError:
-                    raise MigrationError("Invalid migration file prefix (must begin with a number)")
+                match = MIGRATION_NAME_RE.match(name)
+                if match is None:
+                    raise MigrationError("Invalid migration file prefix "
+                                         "(must begin with a number)")
+                number = int(match.group(1))
                 if ext in [".sql", ".py"]:
                     scripts_in_directory.append((number, script))
             
@@ -122,7 +125,7 @@ class Command(BaseCommand):
         # dispatcher events.
         for app_name in settings.INSTALLED_APPS:
             try:
-                import_module('.management', app_name)
+                import_module(".management", app_name)
             except ImportError, exc:
                 # This is slightly hackish. We want to ignore ImportErrors
                 # if the "management" module itself is missing -- but we don't
@@ -134,7 +137,7 @@ class Command(BaseCommand):
                 # CPython uses the text "No module named management"
                 # PyPy uses "No module named myproject.myapp.management"
                 msg = exc.args[0]
-                if not msg.startswith('No module named') or 'management' not in msg:
+                if not msg.startswith("No module named") or "management" not in msg:
                     raise
         
         # @@@ make cleaner / check explicitly for model instead of looping over and doing string comparisons
@@ -245,6 +248,8 @@ class Command(BaseCommand):
             stop_at = int(self.args[0])
         except ValueError:
             raise CommandError("Invalid --seed migration")
+        except IndexError:
+            raise CommandError("Usage: ./manage.py upgradedb --seed <stop_at>")
         migrations = [os.path.join(self.path, m) for m in self._filter_down(stop_at=stop_at)]
         for migration in migrations:
             m, created = Migration.objects.get_or_create(
