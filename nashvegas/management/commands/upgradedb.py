@@ -54,7 +54,7 @@ class Command(BaseCommand):
             ),
             help="The path to the database migration scripts."))
     help = "Upgrade database."
-
+    
     def _filter_down(self, stop_at=None):
         
         if stop_at is None:
@@ -91,9 +91,9 @@ class Command(BaseCommand):
                     to_execute.append(script)
         except OSError, e:
             print str(e)
-
+        
         return to_execute
-
+    
     def _get_rev(self, fpath):
         """
         Get an SCM verion number. Try svn and git.
@@ -116,7 +116,7 @@ class Command(BaseCommand):
                         rev = tokens[1].strip()
             except:
                 pass
-            
+        
         return rev
     
     def init_nashvegas(self):
@@ -184,6 +184,7 @@ class Command(BaseCommand):
                     
                     try:
                         cursor.execute(to_execute)
+                        cursor.close()
                     except Exception:
                         sys.stdout.write("failed\n")
                         if show_traceback:
@@ -197,7 +198,7 @@ class Command(BaseCommand):
                             created_models.add(
                                 get_model(
                                     *l.replace("### New Model: ", "").strip().split(".")
-                                ) 
+                                )
                             )
                 elif migration_path.endswith(".py"):
                     sys.stdout.write("Executing %s... " % migration)
@@ -264,7 +265,6 @@ class Command(BaseCommand):
             else:
                 print m.migration_label, "was already applied."
     
-    
     def list_migrations(self):
         migrations = self._filter_down()
         if len(migrations) == 0:
@@ -278,7 +278,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """
         Upgrades the database.
-
+        
         Executes SQL scripts that haven't already been applied to the
         database.
         """
@@ -294,7 +294,7 @@ class Command(BaseCommand):
         self.db = options.get("database", DEFAULT_DB_ALIAS)
         
         self.init_nashvegas()
-
+        
         if self.do_create:
             self.create_migrations()
         
@@ -306,4 +306,3 @@ class Command(BaseCommand):
         
         if self.do_seed:
             self.seed_migrations()
-
