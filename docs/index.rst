@@ -96,7 +96,7 @@ For example, your script might light like this if you need to update all your
 product codes on next release::
 
     from store.models import Product
-    
+
     def migrate():
         for product in Product.objects.all():
             product.code = "NEW-%s" % product.code
