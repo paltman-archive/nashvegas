@@ -21,6 +21,14 @@ Installation
 * Add the application to your INSTALLED_APPS list in your settings.py file.
 
 
+Settings
+--------
+
+You can set the ``NASHVEGAS_MIGRATIONS_DIRECTORY`` to whatever absolute path
+you are using to store your migrations. It defaults to ``migrations/`` at the
+same level as your ``settings.py``.
+
+
 Usage
 -----
 
