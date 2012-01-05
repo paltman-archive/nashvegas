@@ -293,7 +293,7 @@ class Command(BaseCommand):
                             ),
                             "migrations"
                         )
-            self.path = getattr(settings, "NASHVEGAS_MIGRATION_DIRECTORY", default_path)
+            self.path = getattr(settings, "NASHVEGAS_MIGRATIONS_DIRECTORY", default_path)
         
         self.verbosity = int(options.get("verbosity", 1))
         self.interactive = options.get("interactive")
