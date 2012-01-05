@@ -45,13 +45,7 @@ class Command(BaseCommand):
                     default=DEFAULT_DB_ALIAS, help="Nominates a database to synchronize. "
             "Defaults to the \"default\" database."),
         make_option("-p", "--path", dest = "path",
-            default = os.path.join(
-                os.path.dirname(
-                    os.path.normpath(
-                        os.sys.modules[settings.SETTINGS_MODULE].__file__
-                    )
-                ), "migrations"
-            ),
+            default = None,
             help="The path to the database migration scripts."))
     help = "Upgrade database."
     
@@ -288,7 +282,19 @@ class Command(BaseCommand):
         self.do_seed = options.get("do_seed")
         self.args = args
         
-        self.path = options.get("path")
+        if options.get("path"):
+            self.path = options.get("path")
+        else:
+            default_path = os.path.join(
+                            os.path.dirname(
+                                os.path.normpath(
+                                    os.sys.modules[settings.SETTINGS_MODULE].__file__
+                                )
+                            ),
+                            "migrations"
+                        )
+            self.path = getattr(settings, "NASHVEGAS_MIGRATION_DIRECTORY", default_path)
+        
         self.verbosity = int(options.get("verbosity", 1))
         self.interactive = options.get("interactive")
         self.db = options.get("database", DEFAULT_DB_ALIAS)
