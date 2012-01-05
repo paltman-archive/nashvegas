@@ -159,8 +159,9 @@ class Command(BaseCommand):
         
         created_models = set()
         
-        try:
-            for migration in migrations:
+        for migration in migrations:
+            iteration_models = set()
+            try:
                 migration_path = os.path.join(self.path, migration)
                 fp = open(migration_path, "rb")
                 lines = fp.readlines()
@@ -189,7 +190,7 @@ class Command(BaseCommand):
                     
                     for l in lines:
                         if l.startswith("### New Model: "):
-                            created_models.add(
+                            iteration_models.add(
                                 get_model(
                                     *l.replace("### New Model: ", "").strip().split(".")
                                 )
@@ -216,26 +217,28 @@ class Command(BaseCommand):
                     content=content,
                     scm_version=self._get_rev(migration_path)
                 )
-            sys.stdout.write("Emitting post sync signal.\n")
-            emit_post_sync_signal(
-                created_models,
-                self.verbosity,
-                self.interactive,
-                self.db
-            )
-            sys.stdout.write("Running loaddata for initial_data fixtures.\n")
-            call_command(
-                "loaddata",
-                "initial_data",
-                verbosity=self.verbosity,
-                database=self.db
-            )
-        except Exception:
-            transaction.rollback(using=self.db)
-            sys.stdout.write("Rolled back all migrations.\n")
-            raise
-        else:
-            transaction.commit(using=self.db)
+            except Exception:
+                transaction.rollback(using=self.db)
+                sys.stdout.write("Rolled back all migrations.\n")
+                raise
+            else:
+                created_models = created_models.union(iteration_models)
+                transaction.commit(using=self.db)
+
+        sys.stdout.write("Emitting post sync signal.\n")
+        emit_post_sync_signal(
+            created_models,
+            self.verbosity,
+            self.interactive,
+            self.db
+        )
+        sys.stdout.write("Running loaddata for initial_data fixtures.\n")
+        call_command(
+            "loaddata",
+            "initial_data",
+            verbosity=self.verbosity,
+            database=self.db
+        )
     
     def seed_migrations(self, stop_at=None):
         # @@@ the command-line interface needs to be re-thinked
