@@ -27,49 +27,50 @@ class MigrationError(Exception):
 
 
 class Command(BaseCommand):
-    
+
     option_list = BaseCommand.option_list + (
-        make_option("-l", "--list", action = "store_true",
-                    dest = "do_list", default = False,
-                    help = "Enumerate the list of migrations to execute."),
-        make_option("-e", "--execute", action = "store_true",
-                    dest = "do_execute", default = False,
-                    help = "Execute migrations not in versions table."),
-        make_option("-c", "--create", action = "store_true",
-                    dest = "do_create", default = False,
-                    help = "Generates sql for models that are installed but not in your database."),
-        make_option("-s", "--seed", action = "store_true",
-                    dest = "do_seed", default = False,
-                    help = "Seed nashvegas with migrations that have previously been applied in another manner."),
-        make_option("--database", action="store", dest="database",
+        make_option("-l", "--list", action="store_true",
+                    dest="do_list", default=False,
+                    help="Enumerate the list of migrations to execute."),
+        make_option("-e", "--execute", action="store_true",
+                    dest="do_execute", default=False,
+                    help="Execute migrations not in versions table."),
+        make_option("-c", "--create", action="store_true",
+                    dest="do_create", default=False,
+                    help="Generates sql for models that are installed but not in your database."),
+        make_option("-s", "--seed", action="store_true",
+                    dest="do_seed", default=False,
+                    help="Seed nashvegas with migrations that have previously been applied in another manner."),
+        make_option("-d", "--database", action="store", dest="database",
                     default=DEFAULT_DB_ALIAS, help="Nominates a database to synchronize. "
-            "Defaults to the \"default\" database."),
-        make_option("-p", "--path", dest = "path",
-            default = None,
-            help="The path to the database migration scripts."))
+                    "Defaults to the \"default\" database."),
+        make_option("-p", "--path", dest="path",
+                    default=None,
+                    help="The path to the database migration scripts."))
+
     help = "Upgrade database."
-    
+
     def _filter_down(self, stop_at=None):
-        
+
         if stop_at is None:
             stop_at = float("inf")
-        
+
         applied = []
         to_execute = []
         scripts_in_directory = []
-        
+
         try:
             already_applied = Migration.objects.all().order_by("migration_label")
-            
+
             for x in already_applied:
                 applied.append(x.migration_label)
-            
+
             in_directory = os.listdir(self.path)
             in_directory = [migration for migration in in_directory if
                             not migration.startswith(".")]
             in_directory.sort()
             applied.sort()
-            
+
             for script in in_directory:
                 name, ext = os.path.splitext(script)
                 match = MIGRATION_NAME_RE.match(name)
@@ -79,27 +80,27 @@ class Command(BaseCommand):
                 number = int(match.group(1))
                 if ext in [".sql", ".py"]:
                     scripts_in_directory.append((number, script))
-            
+
             for number, script in scripts_in_directory:
                 if script not in applied and number <= stop_at:
                     to_execute.append(script)
         except OSError, e:
             print str(e)
-        
+
         return to_execute
-    
+
     def _get_rev(self, fpath):
         """
         Get an SCM verion number. Try svn and git.
         """
         rev = None
-        
+
         try:
             cmd = ["git", "log", "-n1", "--pretty=format:\"%h\"", fpath]
             rev = Popen(cmd, stdout=PIPE, stderr=PIPE).communicate()[0]
         except:
             pass
-        
+
         if not rev:
             try:
                 cmd = ["svn", "info", fpath]
@@ -110,9 +111,9 @@ class Command(BaseCommand):
                         rev = tokens[1].strip()
             except:
                 pass
-        
+
         return rev
-    
+
     def init_nashvegas(self):
         # Copied from line 35 of django.core.management.commands.syncdb
         # Import the 'management' module within each installed app, to register
@@ -133,32 +134,32 @@ class Command(BaseCommand):
                 msg = exc.args[0]
                 if not msg.startswith("No module named") or "management" not in msg:
                     raise
-        
+
         # @@@ make cleaner / check explicitly for model instead of looping over and doing string comparisons
         connection = connections[self.db]
         cursor = connection.cursor()
-        all_new = get_sql_for_new_models()
+        all_new = get_sql_for_new_models(using=self.db)
         for s in all_new:
             if "nashvegas_migration" in s:
                 cursor.execute(s)
                 transaction.commit_unless_managed(using=self.db)
                 return
-    
+
     def create_migrations(self):
-        statements = get_sql_for_new_models(self.args)
+        statements = get_sql_for_new_models(self.args, using=self.db)
         if len(statements) > 0:
             for s in statements:
                 print s
-    
+
     @transaction.commit_manually
     def execute_migrations(self, show_traceback=False):
         migrations = self._filter_down()
-        
+
         if not len(migrations):
             sys.stdout.write("There are no migrations to apply.\n")
-        
+
         created_models = set()
-        
+
         try:
             for migration in migrations:
                 migration_path = os.path.join(self.path, migration)
@@ -166,16 +167,16 @@ class Command(BaseCommand):
                 lines = fp.readlines()
                 fp.close()
                 content = "".join(lines)
-                
+
                 if migration_path.endswith(".sql"):
                     to_execute = "".join(
                         [l for l in lines if not l.startswith("### New Model: ")]
                     )
                     connection = connections[self.db]
                     cursor = connection.cursor()
-                    
+
                     sys.stdout.write("Executing %s... " % migration)
-                    
+
                     try:
                         cursor.execute(to_execute)
                         cursor.close()
@@ -186,7 +187,7 @@ class Command(BaseCommand):
                         raise MigrationError()
                     else:
                         sys.stdout.write("success\n")
-                    
+
                     for l in lines:
                         if l.startswith("### New Model: "):
                             created_models.add(
@@ -196,10 +197,10 @@ class Command(BaseCommand):
                             )
                 elif migration_path.endswith(".py"):
                     sys.stdout.write("Executing %s... " % migration)
-                    
+
                     module = {}
                     execfile(migration_path, {}, module)
-                    
+
                     if "migrate" in module and callable(module["migrate"]):
                         try:
                             module["migrate"]()
@@ -210,7 +211,7 @@ class Command(BaseCommand):
                             raise MigrationError()
                         else:
                             sys.stdout.write("success\n")
-                
+
                 Migration.objects.create(
                     migration_label=migration,
                     content=content,
@@ -236,7 +237,7 @@ class Command(BaseCommand):
             raise
         else:
             transaction.commit(using=self.db)
-    
+
     def seed_migrations(self, stop_at=None):
         # @@@ the command-line interface needs to be re-thinked
         try:
@@ -258,21 +259,21 @@ class Command(BaseCommand):
                 print m.migration_label, "has been seeded"
             else:
                 print m.migration_label, "was already applied."
-    
+
     def list_migrations(self):
         migrations = self._filter_down()
         if len(migrations) == 0:
             print "There are no migrations to apply."
             return
-        
+
         print "Migrations to Apply:"
         for script in migrations:
             print "\t%s" % script
-    
+
     def handle(self, *args, **options):
         """
         Upgrades the database.
-        
+
         Executes SQL scripts that haven't already been applied to the
         database.
         """
@@ -281,7 +282,7 @@ class Command(BaseCommand):
         self.do_create = options.get("do_create")
         self.do_seed = options.get("do_seed")
         self.args = args
-        
+
         if options.get("path"):
             self.path = options.get("path")
         else:
@@ -294,21 +295,21 @@ class Command(BaseCommand):
                             "migrations"
                         )
             self.path = getattr(settings, "NASHVEGAS_MIGRATIONS_DIRECTORY", default_path)
-        
+
         self.verbosity = int(options.get("verbosity", 1))
         self.interactive = options.get("interactive")
         self.db = options.get("database", DEFAULT_DB_ALIAS)
-        
+
         self.init_nashvegas()
-        
+
         if self.do_create:
             self.create_migrations()
-        
+
         if self.do_execute:
             self.execute_migrations(show_traceback=True)
-        
+
         if self.do_list:
             self.list_migrations()
-        
+
         if self.do_seed:
             self.seed_migrations()
