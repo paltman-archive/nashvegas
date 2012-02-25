@@ -13,11 +13,13 @@ NASHVEGAS = getattr(settings, "NASHVEGAS", None)
 
 
 class Command(BaseCommand):
-    
+
     option_list = BaseCommand.option_list + (
-        make_option("-n", "--name", action = "store", dest = "db_name",
-                    default = "%s_compare" % connections.databases[DEFAULT_DB_ALIAS]["NAME"],
-                    help = "The name of the database to hold the truth schema"),
+        make_option("-n", "--name", action="store", dest="db_name",
+                    help="The name of the database to hold the truth schema (defaults to <name>_compare"),
+        make_option("-d", "--database", action="store", dest="database",
+                    default=DEFAULT_DB_ALIAS, help="Nominates a database to synchronize. "
+                    "Defaults to the \"default\" database."),
     )
     help = "Compares current database with the one that nashvegas will build from scratch."
 
@@ -41,8 +43,12 @@ class Command(BaseCommand):
         dumps the schema from both current and temporary, diffs them, then
         report the diffs to the user.
         """
+        self.db = options.get("database", DEFAULT_DB_ALIAS)
         self.name = options.get("db_name")
-        command = "pg_dump -s %s" % connections[DEFAULT_DB_ALIAS].settings_dict["NAME"]
+        if not self.name:
+            self.name = "%s_compare" % connections.databases[self.db]["NAME"]
+
+        command = "pg_dump -s %s" % connections[self.db].settings_dict["NAME"]
         if NASHVEGAS and "pg_dump" in settings.NASHVEGAS:
             command = settings.NASHVEGAS["pg_dump"]
 
@@ -51,13 +57,13 @@ class Command(BaseCommand):
 
         print "Getting schema for fresh database..."
         self.setup_database()
-        orig = connections[DEFAULT_DB_ALIAS].settings_dict["NAME"]
-        connections[DEFAULT_DB_ALIAS].close()
-        connections[DEFAULT_DB_ALIAS].settings_dict["NAME"] = self.name
+        orig = connections[self.db].settings_dict["NAME"]
+        connections[self.db].close()
+        connections[self.db].settings_dict["NAME"] = self.name
         call_command("syncdb", interactive=False, verbosity=0)
         new_sql = Popen(command.split(), stdout=PIPE).stdout.readlines()
-        connections[DEFAULT_DB_ALIAS].close()
-        connections[DEFAULT_DB_ALIAS].settings_dict["NAME"] = orig
+        connections[self.db].close()
+        connections[self.db].settings_dict["NAME"] = orig
         self.teardown_database()
 
         print "Outputing diff between the two..."
