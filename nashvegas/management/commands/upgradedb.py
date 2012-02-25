@@ -367,7 +367,7 @@ class Command(BaseCommand):
                 print m.migration_label, "was already applied."
 
     def list_migrations(self):
-        all_migrations = list(self._filter_down())
+        all_migrations = self._filter_down()
         if len(all_migrations) == 0:
             print "There are no migrations to apply."
             return
