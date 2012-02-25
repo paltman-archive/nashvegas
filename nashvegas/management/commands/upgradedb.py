@@ -53,7 +53,7 @@ class Command(BaseCommand):
 
     help = "Upgrade database."
 
-    def _get_capable_database(self):
+    def _get_capable_databases(self):
         for database in connections:
             if router.allow_syncdb(database, Migration):
                 yield database
@@ -76,14 +76,9 @@ class Command(BaseCommand):
 
     def _get_applied_migrations(self):
         results = defaultdict(list)
-        already_applied = Migration.objects.all().order_by("migration_label")
-        for x in already_applied:
-            try:
-                version, database = x.scm_version.split(':')
-            except ValueError:
-                version, database = x.scm_version, DEFAULT_DB_ALIAS
-
-            results[database].append(x.migration_label)
+        for database in self._get_capable_databases():
+            for x in Migration.objects.using(database).order_by("migration_label"):
+                results[database].append(x.migration_label)
         return results
 
     def _filter_down(self, stop_at=None):
@@ -135,11 +130,12 @@ class Command(BaseCommand):
         for database, scripts in possible_migrations.iteritems():
             applied = applied_migrations[database]
             pending = to_execute[database]
-            for number, script in scripts:
+            for number, migration in scripts:
+                path, script = os.path.split(migration)
                 if script not in applied and number <= stop_at:
                     pending.append(script)
 
-        return to_execute
+        return dict((k, v) for k, v in to_execute.iteritems() if v)
 
     def _get_rev(self, fpath):
         """
@@ -259,7 +255,7 @@ class Command(BaseCommand):
                     raise
 
         # @@@ make cleaner / check explicitly for model instead of looping over and doing string comparisons
-        for database in self._get_capable_database():
+        for database in self._get_capable_databases():
             connection = connections[database]
             cursor = connection.cursor()
             all_new = get_sql_for_new_models(['nashvegas'], using=database)
@@ -273,7 +269,7 @@ class Command(BaseCommand):
                 transaction.commit_unless_managed(using=database)
 
     def create_all_migrations(self):
-        for database in self._get_capable_database():
+        for database in self._get_capable_databases():
             statements = get_sql_for_new_models(using=database)
             if len(statements) == 0:
                 continue
@@ -371,14 +367,15 @@ class Command(BaseCommand):
                 print m.migration_label, "was already applied."
 
     def list_migrations(self):
-        migrations = self._filter_down()
-        if len(migrations) == 0:
+        all_migrations = list(self._filter_down())
+        if len(all_migrations) == 0:
             print "There are no migrations to apply."
             return
 
         print "Migrations to Apply:"
-        for script in migrations:
-            print "\t%s" % script
+        for database, migrations in all_migrations.iteritems():
+            for script in migrations:
+                print "\t%s: %s" % (database, script)
 
     def handle(self, *args, **options):
         """
