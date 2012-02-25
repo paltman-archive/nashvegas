@@ -318,7 +318,8 @@ class Command(BaseCommand):
             try:
 
                 for migration in migrations:
-                    created_models |= self._execute_migration(db, migration, show_traceback=show_traceback)
+                    migration_path = os.path.join(self.path, db, migration)
+                    created_models |= self._execute_migration(db, migration_path, show_traceback=show_traceback)
 
                 sys.stdout.write("Emitting post sync signal.\n")
                 emit_post_sync_signal(
