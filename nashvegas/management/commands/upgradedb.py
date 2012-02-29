@@ -317,7 +317,10 @@ class Command(BaseCommand):
             
             try:
                 for migration in migrations:
-                    migration_path = os.path.join(self.path, db, migration)
+                    if db == DEFAULT_DB_ALIAS:
+                        migration_path = os.path.join(self.path, migration)
+                    else:
+                        migration_path = os.path.join(self.path, db, migration)
                     created_models |= self._execute_migration(db, migration_path, show_traceback=show_traceback)
                 
                 sys.stdout.write("Emitting post sync signal.\n")
