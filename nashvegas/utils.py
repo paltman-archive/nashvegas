@@ -9,18 +9,18 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
     Unashamedly copied and tweaked from django.core.management.commands.syncdb
     """
     connection = connections[using]
-
+    
     # Get a list of already installed *models* so that references work right.
     tables = connection.introspection.table_names()
     seen_models = connection.introspection.installed_models(tables)
     created_models = set()
     pending_references = {}
-
+    
     if apps:
         apps = [models.get_app(a) for a in apps]
     else:
         apps = models.get_apps()
-
+    
     # Build the manifest of apps and models that are to be synchronized
     all_models = [
         (app.__name__.split('.')[-2],
@@ -28,7 +28,7 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
             if router.allow_syncdb(using, m)])
         for app in apps
     ]
-
+    
     def model_installed(model):
         opts = model._meta
         converter = connection.introspection.table_name_converter
@@ -38,12 +38,12 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
             converter(opts.auto_created._meta.db_table) in tables
         )
         return not (db_table_in or auto_create_in)
-
+    
     manifest = SortedDict(
         (app_name, filter(model_installed, model_list))
         for app_name, model_list in all_models
     )
-
+    
     statements = []
     sql = None
     for app_name, model_list in manifest.items():
@@ -54,14 +54,14 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
                 no_style(),
                 seen_models
             )
-
+            
             seen_models.add(model)
             created_models.add(model)
             statements.append("### New Model: %s.%s" % (
                 app_name,
                 str(model).replace("'>", "").split(".")[-1]
             ))
-
+            
             for refto, refs in references.items():
                 pending_references.setdefault(refto, []).extend(refs)
                 if refto in seen_models:
@@ -72,7 +72,7 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
                             pending_references
                         )
                     )
-
+            
             sql.extend(
                 connection.creation.sql_for_pending_references(
                     model,
@@ -81,7 +81,7 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
                 )
             )
             statements.extend(sql)
-
+    
     custom_sql = None
     for app_name, model_list in manifest.items():
         for model in model_list:
@@ -91,10 +91,10 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
                     no_style(),
                     connection
                 )
-
+                
                 if custom_sql:
                     statements.extend(custom_sql)
-
+    
     index_sql = None
     for app_name, model_list in manifest.items():
         for model in model_list:
@@ -103,8 +103,8 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
                     model,
                     no_style()
                 )
-
+                
                 if index_sql:
                     statements.extend(index_sql)
-
+    
     return statements
