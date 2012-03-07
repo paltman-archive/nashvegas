@@ -74,6 +74,22 @@ the `NASHVEGAS` dictionnary in your setting::
 
 By default, nashvegas executes raw `createdb`, `dropdb` or `pg_dump` commands.
 
+If you add a field "test" on model "Foo" it will output::
+
+    >>> ./manage.py comparedb
+    Getting schema for current database...
+    Getting schema for fresh database...
+    Outputing diff between the two...
+    --- 
+    +++ 
+    @@ -515,7 +515,8 @@
+     
+     CREATE TABLE testapp_foo (
+         id integer NOT NULL,
+    -    bar character varying(100)
+    +    bar character varying(100),
+    +    test character varying(100)
+     );
 
 Conventions
 -----------
