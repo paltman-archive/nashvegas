@@ -26,13 +26,13 @@ class Command(BaseCommand):
     def setup_database(self):
         command = "createdb %s" % self.name
         if NASHVEGAS and "createdb" in settings.NASHVEGAS:
-            command = settings.NASHVEGAS["createdb"]
+            command = "%s %s" % (settings.NASHVEGAS["createdb"], self.name)
         Popen(command.split()).wait()
     
     def teardown_database(self):
         command = "dropdb %s" % self.name
         if NASHVEGAS and "dropdb" in settings.NASHVEGAS:
-            command = settings.NASHVEGAS["dropdb"]
+            command = "%s %s" % (settings.NASHVEGAS["dropdb"], self.name)
         Popen(command.split()).wait()
     
     def handle(self, *args, **options):
