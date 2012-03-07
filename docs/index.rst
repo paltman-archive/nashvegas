@@ -57,24 +57,6 @@ Options for upgradedb
   `./manage.py upgradedb --seed 005` will skip migrations 000 to 005 but not
   006.
 
-
-Configuration for comparedb
----------------------------
-
-The `comparedb` command is available only for Postgres. It executes a few raw
-postgres shell commands which you might need to customize to add user
-credentials, encoding or specify database templates. This can be done through
-the `NASHVEGAS` dictionnary in your setting::
-
-    NASHVEGAS = {
-        "createdb": "createdb -U postgres -T template0 -E UTF8",
-        "dropdb": "dropdb -U postgres",
-        "pg_dump": "pg_dump -U postgres",
-    }
-
-By default, nashvegas executes raw `createdb`, `dropdb` or `pg_dump` commands.
-
-
 Conventions
 -----------
 
@@ -110,6 +92,100 @@ product codes on next release::
             product.code = "NEW-%s" % product.code
             product.save()
 
+Configuration for comparedb
+---------------------------
+
+The `comparedb` command is available only for advanced system administrators.
+It proceeds as such:
+
+* get the SQL structure dump of the current database
+* create a new database, the "compare" database
+* syncdb in the "compare" database,
+* get the SQL structure dump of the "compare" database
+* output the diff
+
+It executes a few raw shell commands which you might need to customize to add
+user credentials, encoding or specify database templates. This can be done
+through the `NASHVEGAS` dictionnary in your setting.
+
+Example for PostgreSQL
+``````````````````````
+
+By default, nashvegas executes raw `createdb`, `dropdb` or `pg_dump` commands,
+example customisation::
+
+    NASHVEGAS = {
+        "createdb": "createdb -U postgres -T template0 -E UTF8 {dbname}",
+        "dropdb": "dropdb -U postgres {dbname}",
+        "pg_dump": "pg_dump -U postgres {dbname}",
+    }
+
+
+If you add a field "test" on model "Foo", comparedb will output::
+
+    >>> ./manage.py comparedb
+    Getting schema for current database...
+    Getting schema for fresh database...
+    Outputing diff between the two...
+    --- 
+    +++ 
+    @@ -515,7 +515,8 @@
+     
+     CREATE TABLE testapp_foo (
+         id integer NOT NULL,
+    -    bar character varying(100)
+    +    bar character varying(100),
+    +    test character varying(100)
+     );
+
+Example for MySQL
+`````````````````
+
+MySQL is not supported by default thought such settings do work::
+
+    NASHVEGAS = { 
+        "createdb": "mysql -u root -p -e \"create database {dbname}\"",
+        "dropdb": "mysql -u root -p -e \"drop database {dbname}\"",
+        "pg_dump": "mysqldump -u root -p {dbname}",
+    }
+
+If you add a field "test" on model "Foo", comparedb will output::
+
+    >>> ./manage.py comparedb       
+    Getting schema for current database...
+    Enter password: 
+    Getting schema for fresh database...
+    Enter password: 
+    Enter password: 
+    Enter password: 
+    Outputing diff between the two...
+    --- 
+    +++ 
+    @@ -1,6 +1,6 @@
+     -- MySQL dump 10.13  Distrib 5.1.58, for debian-linux-gnu (x86_64)
+     --
+    --- Host: localhost    Database: testproject
+    +-- Host: localhost    Database: testproject_compare
+     -- ------------------------------------------------------
+     -- Server version  5.1.58-1ubuntu1
+     
+    @@ -419,6 +419,7 @@
+     CREATE TABLE `testapp_foo` (
+       `id` int(11) NOT NULL AUTO_INCREMENT,
+       `bar` varchar(100) DEFAULT NULL,
+    +  `test` varchar(100) DEFAULT NULL,
+       PRIMARY KEY (`id`)
+     ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+     /*!40101 SET character_set_client = @saved_cs_client */;
+    @@ -441,4 +442,4 @@
+     /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+     /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+     
+    --- Dump completed on 2012-03-07 12:58:15
+    +-- Dump completed on 2012-03-07 12:58:18
+
+Typicall customisation would be to setup a `$HOME/.my.cnf` that contains
+credentials allowing to run this command without password prompt.
 
 Indices and tables
 ==================

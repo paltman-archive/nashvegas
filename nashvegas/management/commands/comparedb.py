@@ -9,7 +9,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 
-NASHVEGAS = getattr(settings, "NASHVEGAS", None)
+NASHVEGAS = getattr(settings, "NASHVEGAS", {})
 
 
 class Command(BaseCommand):
@@ -24,16 +24,12 @@ class Command(BaseCommand):
     help = "Compares current database with the one that nashvegas will build from scratch."
     
     def setup_database(self):
-        command = "createdb %s" % self.name
-        if NASHVEGAS and "createdb" in settings.NASHVEGAS:
-            command = "%s %s" % (settings.NASHVEGAS["createdb"], self.name)
-        Popen(command.split()).wait()
+        command = NASHVEGAS.get("createdb", "createdb {dbname}")
+        Popen(command.format(dbname=self.compare_name), shell=True).wait()
     
     def teardown_database(self):
-        command = "dropdb %s" % self.name
-        if NASHVEGAS and "dropdb" in settings.NASHVEGAS:
-            command = "%s %s" % (settings.NASHVEGAS["dropdb"], self.name)
-        Popen(command.split()).wait()
+        command = NASHVEGAS.get("dropdb", "dropdb {dbname}")
+        Popen(command.format(dbname=self.compare_name), shell=True).wait()
     
     def handle(self, *args, **options):
         """
@@ -44,30 +40,26 @@ class Command(BaseCommand):
         report the diffs to the user.
         """
         self.db = options.get("database", DEFAULT_DB_ALIAS)
-        self.name = options.get("db_name")
-        if not self.name:
-            self.name = "%s_compare" % connections.databases[self.db]["NAME"]
-        
-        command = "pg_dump -s %s" % connections[self.db].settings_dict["NAME"]
-        if NASHVEGAS and "pg_dump" in settings.NASHVEGAS:
-            command = "%s -s %s" % (settings.NASHVEGAS["pg_dump"], 
-                connections[self.db].settings_dict["NAME"])
-        
+        self.current_name = connections[self.db].settings_dict["NAME"]
+        self.compare_name = options.get("db_name")
+        if not self.compare_name:
+            self.compare_name = "%s_compare" % self.current_name
+
+        command = NASHVEGAS.get("pg_dump", "pg_dump -s {dbname}")
+
         print "Getting schema for current database..."
-        print command
-        current_sql = Popen(command.split(), stdout=PIPE).stdout.readlines()
+        current_sql = Popen(command.format(dbname=self.current_name),
+            shell=True, stdout=PIPE).stdout.readlines()
         
         print "Getting schema for fresh database..."
         self.setup_database()
-        orig = connections[self.db].settings_dict["NAME"]
         connections[self.db].close()
-        connections[self.db].settings_dict["NAME"] = self.name
+        connections[self.db].settings_dict["NAME"] = self.compare_name
         call_command("syncdb", interactive=False, verbosity=0)
-        print command
-        new_sql = Popen(command.split() + ["-s", self.name], 
+        new_sql = Popen(command.format(dbname=self.compare_name).split(), 
             stdout=PIPE).stdout.readlines()
         connections[self.db].close()
-        connections[self.db].settings_dict["NAME"] = orig
+        connections[self.db].settings_dict["NAME"] = self.current_name
         self.teardown_database()
         
         print "Outputing diff between the two..."
