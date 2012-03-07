@@ -26,13 +26,13 @@ class Command(BaseCommand):
     def setup_database(self):
         command = "createdb %s" % self.name
         if NASHVEGAS and "createdb" in settings.NASHVEGAS:
-            command = settings.NASHVEGAS["createdb"]
+            command = "%s %s" % (settings.NASHVEGAS["createdb"], self.name)
         Popen(command.split()).wait()
     
     def teardown_database(self):
         command = "dropdb %s" % self.name
         if NASHVEGAS and "dropdb" in settings.NASHVEGAS:
-            command = settings.NASHVEGAS["dropdb"]
+            command = "%s %s" % (settings.NASHVEGAS["dropdb"], self.name)
         Popen(command.split()).wait()
     
     def handle(self, *args, **options):
@@ -50,9 +50,11 @@ class Command(BaseCommand):
         
         command = "pg_dump -s %s" % connections[self.db].settings_dict["NAME"]
         if NASHVEGAS and "pg_dump" in settings.NASHVEGAS:
-            command = settings.NASHVEGAS["pg_dump"]
+            command = "%s -s %s" % (settings.NASHVEGAS["pg_dump"], 
+                connections[self.db].settings_dict["NAME"])
         
         print "Getting schema for current database..."
+        print command
         current_sql = Popen(command.split(), stdout=PIPE).stdout.readlines()
         
         print "Getting schema for fresh database..."
@@ -61,7 +63,9 @@ class Command(BaseCommand):
         connections[self.db].close()
         connections[self.db].settings_dict["NAME"] = self.name
         call_command("syncdb", interactive=False, verbosity=0)
-        new_sql = Popen(command.split(), stdout=PIPE).stdout.readlines()
+        print command
+        new_sql = Popen(command.split() + ["-s", self.name], 
+            stdout=PIPE).stdout.readlines()
         connections[self.db].close()
         connections[self.db].settings_dict["NAME"] = orig
         self.teardown_database()
