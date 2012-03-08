@@ -117,7 +117,7 @@ example customisation::
     NASHVEGAS = {
         "createdb": "createdb -U postgres -T template0 -E UTF8 {dbname}",
         "dropdb": "dropdb -U postgres {dbname}",
-        "pg_dump": "pg_dump -U postgres {dbname}",
+        "dumpdb": "pg_dump -U postgres {dbname}",
     }
 
 
@@ -146,7 +146,7 @@ MySQL is not supported by default thought such settings do work::
     NASHVEGAS = { 
         "createdb": "mysql -u root -p -e \"create database {dbname}\"",
         "dropdb": "mysql -u root -p -e \"drop database {dbname}\"",
-        "pg_dump": "mysqldump -u root -p {dbname}",
+        "dumpdb": "mysqldump -u root -p {dbname}",
     }
 
 If you add a field "test" on model "Foo", comparedb will output::

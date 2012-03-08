@@ -45,7 +45,7 @@ class Command(BaseCommand):
         if not self.compare_name:
             self.compare_name = "%s_compare" % self.current_name
 
-        command = NASHVEGAS.get("pg_dump", "pg_dump -s {dbname}")
+        command = NASHVEGAS.get("dumpdb", "pg_dump -s {dbname}")
 
         print "Getting schema for current database..."
         current_sql = Popen(command.format(dbname=self.current_name),
