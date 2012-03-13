@@ -135,9 +135,6 @@ class Command(BaseCommand):
             number = int(match.group(1))
             if ext in [".sql", ".py"]:
                 possible_migrations[database].append((number, full_path))
-            else:
-                raise MigrationError("Invalid migration file suffix %r "
-                                     "(unsupported file type)" % ext)
         
         for database, scripts in possible_migrations.iteritems():
             applied = applied_migrations[database]
