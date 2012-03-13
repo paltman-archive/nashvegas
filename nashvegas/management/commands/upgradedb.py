@@ -23,6 +23,22 @@ sys.path.append("migrations")
 MIGRATION_NAME_RE = re.compile(r"(\d+)(.*)")
 
 
+class Transactional(object):
+    def __enter__(self):
+        for db in connections:
+            # enter transaction management
+            transaction.enter_transaction_management(using=db)
+            transaction.managed(True, using=db)
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        for db in connections:
+            if exc_type:
+                transaction.rollback(using=db)
+            else:
+                transaction.commit(using=db)
+            transaction.leave_transaction_management(using=db)
+
+
 class MigrationError(Exception):
     pass
 
@@ -318,18 +334,12 @@ class Command(BaseCommand):
         if not len(all_migrations):
             sys.stdout.write("There are no migrations to apply.\n")
         
-        created_models = set()
-        
         for db, migrations in all_migrations.iteritems():
             connection = connections[db]
             
             # init connection
             cursor = connection.cursor()
             cursor.close()
-            
-            # enter transaction management
-            transaction.enter_transaction_management(using=db)
-            transaction.managed(True, using=db)
             
             try:
                 for migration in migrations:
@@ -338,15 +348,17 @@ class Command(BaseCommand):
                         migration_path = os.path.join(self.path, migration)
                     else:
                         migration_path = os.path.join(self.path, db, migration)
-                    created_models |= self._execute_migration(db, migration_path, show_traceback=show_traceback)
-                
-                sys.stdout.write("Emitting post sync signal.\n")
-                emit_post_sync_signal(
-                    created_models=created_models,
-                    verbosity=self.verbosity,
-                    interactive=self.interactive,
-                    db=db,
-                )
+                    
+                    with Transactional():
+                        sys.stdout.write("Executing migration %r on %r.\n" % (migration, db))
+                        created_models = self._execute_migration(db, migration_path, show_traceback=show_traceback)
+
+                        emit_post_sync_signal(
+                            created_models=created_models,
+                            verbosity=self.verbosity,
+                            interactive=self.interactive,
+                            db=db,
+                        )
                 
                 sys.stdout.write("Running loaddata for initial_data fixtures.\n")
                 call_command(
@@ -356,13 +368,8 @@ class Command(BaseCommand):
                     database=db,
                 )
             except Exception:
-                transaction.rollback(using=db)
                 sys.stdout.write("Rolled back all migrations on %r.\n" % db)
                 raise
-            else:
-                transaction.commit(using=db)
-            finally:
-                transaction.leave_transaction_management(using=db)
     
     def seed_migrations(self, stop_at=None):
         # @@@ the command-line interface needs to be re-thinked
