@@ -179,7 +179,7 @@ class Command(BaseCommand):
             result = Migration.objects.using(database).order_by('-migration_label')[0]
         except IndexError:
             return 0
-        match = MIGRATION_NAME_RE.match(result.migration_level)
+        match = MIGRATION_NAME_RE.match(result.migration_label)
         return int(match.group(1))
     
     def _execute_migration(self, database, migration, show_traceback=True):
