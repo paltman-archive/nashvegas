@@ -63,6 +63,8 @@ class Command(BaseCommand):
                     help="Seed nashvegas with migrations that have previously been applied in another manner."),
         make_option("-d", "--database", action="store", dest="database",
                     help="Nominates a database to synchronize."),
+        make_option("--noinput", action="store_false", dest="interactive", default=True,
+                    help="Tells Django to NOT prompt the user for input of any kind."),
         make_option("-p", "--path", dest="path",
                     default=None,
                     help="The path to the database migration scripts."))
