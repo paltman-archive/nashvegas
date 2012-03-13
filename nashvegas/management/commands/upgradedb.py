@@ -182,6 +182,14 @@ class Command(BaseCommand):
         match = MIGRATION_NAME_RE.match(result.migration_label)
         return int(match.group(1))
     
+    def _get_migration_path(self, db, migration):
+        if db == DEFAULT_DB_ALIAS and os.path.exists(os.path.join(self.path, migration)):
+            migration_path = os.path.join(self.path, migration)
+        else:
+            migration_path = os.path.join(self.path, db, migration)
+
+        return migration_path
+    
     def _execute_migration(self, database, migration, show_traceback=True):
         created_models = set()
         
@@ -334,10 +342,7 @@ class Command(BaseCommand):
             try:
                 for migration in migrations:
                     # legacy migrations were not located within a child directory
-                    if db == DEFAULT_DB_ALIAS and os.path.exists(os.path.join(self.path, migration)):
-                        migration_path = os.path.join(self.path, migration)
-                    else:
-                        migration_path = os.path.join(self.path, db, migration)
+                    migration_path = self._get_migration_path(db, migration)
                     created_models |= self._execute_migration(db, migration_path, show_traceback=show_traceback)
                 
                 sys.stdout.write("Emitting post sync signal.\n")
@@ -366,25 +371,34 @@ class Command(BaseCommand):
     
     def seed_migrations(self, stop_at=None):
         # @@@ the command-line interface needs to be re-thinked
-        try:
-            stop_at = int(self.args[0])
-        except ValueError:
-            raise CommandError("Invalid --seed migration")
-        except IndexError:
-            raise CommandError("Usage: ./manage.py upgradedb --seed <stop_at>")
-        migrations = [os.path.join(self.path, m) for m in self._filter_down(stop_at=stop_at)]
-        for migration in migrations:
-            m, created = Migration.objects.get_or_create(
-                migration_label=os.path.basename(migration),
-                content=open(migration, "rb").read()
-            )
-            if created:
-                # this might have been executed prior to committing
-                m.scm_version = self._get_rev(migration)
-                m.save()
-                print m.migration_label, "has been seeded"
-            else:
-                print m.migration_label, "was already applied."
+        # TODO: this needs to be able to handle multi-db when you're specifying stop_at
+        if stop_at is None and self.args:
+            stop_at = self.args[0]
+        
+        if stop_at:
+            try:
+                stop_at = int(stop_at)
+            except ValueError:
+                raise CommandError("Invalid --seed migration")
+            except IndexError:
+                raise CommandError("Usage: ./manage.py upgradedb --seed [stop_at]")
+
+        all_migrations = self._filter_down(stop_at=stop_at)
+        for db, migrations in all_migrations.iteritems():
+            for migration in migrations:
+                migration_path = self._get_migration_path(db, migration)
+
+                m, created = Migration.objects.using(db).get_or_create(
+                    migration_label=os.path.split(migration)[-1],
+                    content=open(migration_path, "rb").read()
+                )
+                if created:
+                    # this might have been executed prior to committing
+                    m.scm_version = self._get_rev(migration)
+                    m.save()
+                    print "%s:%s has been seeded" % (db, m.migration_label)
+                else:
+                    print "%s:%s was already applied" % (db, m.migration_label)
     
     def list_migrations(self):
         all_migrations = self._filter_down()
