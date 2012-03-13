@@ -54,11 +54,19 @@ class Command(BaseCommand):
     help = "Upgrade database."
     
     def _get_capable_databases(self):
+        """
+        Returns a list of databases which are capable of supporting
+        Nashvegas (based on their routing configuration).
+        """
         for database in connections:
             if router.allow_syncdb(database, Migration):
                 yield database
     
     def _get_file_list(self, path, max_depth=1, cur_depth=0):
+        """
+        Recursively returns a list of all files up to ``max_depth``
+        in a directory.
+        """
         for name in os.listdir(path):
             if name.startswith('.'):
                 continue
@@ -75,6 +83,10 @@ class Command(BaseCommand):
                 yield full_path
     
     def _get_applied_migrations(self):
+        """
+        Returns a dictionary containing lists of all applied migrations
+        where the key is the database alias.
+        """
         results = defaultdict(list)
         for database in self._get_capable_databases():
             for x in Migration.objects.using(database).order_by("migration_label"):
@@ -297,6 +309,10 @@ class Command(BaseCommand):
                 print s
     
     def execute_migrations(self, show_traceback=True):
+        """
+        Executes all pending migrations across all capable
+        databases
+        """
         all_migrations = self._filter_down()
         
         if not len(all_migrations):
@@ -317,7 +333,8 @@ class Command(BaseCommand):
             
             try:
                 for migration in migrations:
-                    if db == DEFAULT_DB_ALIAS:
+                    # legacy migrations were not located within a child directory
+                    if db == DEFAULT_DB_ALIAS and os.path.exists(os.path.join(self.path, migration)):
                         migration_path = os.path.join(self.path, migration)
                     else:
                         migration_path = os.path.join(self.path, db, migration)
