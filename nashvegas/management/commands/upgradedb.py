@@ -220,8 +220,6 @@ class Command(BaseCommand):
             connection = connections[database]
             cursor = connection.cursor()
             
-            sys.stdout.write("Executing %r on %r... " % (migration, database))
-            
             try:
                 cursor.execute(to_execute)
                 cursor.close()
@@ -244,8 +242,6 @@ class Command(BaseCommand):
         elif migration.endswith(".py"):
             # TODO: python files have no concept of active database
             #       we should probably pass it to migrate()
-            sys.stdout.write("Executing %s... " % migration)
-            
             module = {}
             execfile(migration, {}, module)
             
@@ -352,7 +348,7 @@ class Command(BaseCommand):
                 migration_path = self._get_migration_path(db, migration)
                 
                 with Transactional():
-                    sys.stdout.write("Executing migration %r on %r.\n" % (migration, db))
+                    sys.stdout.write("Executing migration %r on %r...." % (migration, db))
                     created_models = self._execute_migration(db, migration_path, show_traceback=show_traceback)
 
                     emit_post_sync_signal(
