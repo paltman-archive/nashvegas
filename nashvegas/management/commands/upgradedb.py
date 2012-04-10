@@ -63,7 +63,7 @@ class Command(BaseCommand):
                     help="Seed nashvegas with migrations that have previously been applied in another manner."),
         make_option("-d", "--database", action="store", dest="database",
                     help="Nominates a database to synchronize."),
-        make_option("--noinput", action="store_false", dest="interactive", default=True,
+        make_option("--noinput", action="store_false", dest="interactive", default=False,
                     help="Tells Django to NOT prompt the user for input of any kind."),
         make_option("-p", "--path", dest="path",
                     default=None,
@@ -153,9 +153,6 @@ class Command(BaseCommand):
             number = int(match.group(1))
             if ext in [".sql", ".py"]:
                 possible_migrations[database].append((number, full_path))
-            else:
-                raise MigrationError("Invalid migration file suffix %r "
-                                     "(unsupported file type)" % ext)
         
         for database, scripts in possible_migrations.iteritems():
             applied = applied_migrations[database]
@@ -223,8 +220,6 @@ class Command(BaseCommand):
             connection = connections[database]
             cursor = connection.cursor()
             
-            sys.stdout.write("Executing %r on %r... " % (migration, database))
-            
             try:
                 cursor.execute(to_execute)
                 cursor.close()
@@ -247,8 +242,6 @@ class Command(BaseCommand):
         elif migration.endswith(".py"):
             # TODO: python files have no concept of active database
             #       we should probably pass it to migrate()
-            sys.stdout.write("Executing %s... " % migration)
-            
             module = {}
             execfile(migration, {}, module)
             
@@ -350,34 +343,28 @@ class Command(BaseCommand):
             # init connection
             cursor = connection.cursor()
             cursor.close()
-            
-            try:
-                for migration in migrations:
-                    # legacy migrations were not located within a child directory
-
-                    migration_path = self._get_migration_path(db, migration)
-                    
-                    with Transactional():
-                        sys.stdout.write("Executing migration %r on %r.\n" % (migration, db))
-                        created_models = self._execute_migration(db, migration_path, show_traceback=show_traceback)
-
-                        emit_post_sync_signal(
-                            created_models=created_models,
-                            verbosity=self.verbosity,
-                            interactive=self.interactive,
-                            db=db,
-                        )
+                        
+            for migration in migrations:
+                migration_path = self._get_migration_path(db, migration)
                 
-                sys.stdout.write("Running loaddata for initial_data fixtures.\n")
-                call_command(
-                    "loaddata",
-                    "initial_data",
-                    verbosity=self.verbosity,
-                    database=db,
-                )
-            except Exception:
-                sys.stdout.write("Rolled back all migrations on %r.\n" % db)
-                raise
+                with Transactional():
+                    sys.stdout.write("Executing migration %r on %r...." % (migration, db))
+                    created_models = self._execute_migration(db, migration_path, show_traceback=show_traceback)
+
+                    emit_post_sync_signal(
+                        created_models=created_models,
+                        verbosity=self.verbosity,
+                        interactive=self.interactive,
+                        db=db,
+                    )
+            
+            sys.stdout.write("Running loaddata for initial_data fixtures on %r.\n" % db)
+            call_command(
+                "loaddata",
+                "initial_data",
+                verbosity=self.verbosity,
+                database=db,
+            )
     
     def seed_migrations(self, stop_at=None):
         # @@@ the command-line interface needs to be re-thinked
