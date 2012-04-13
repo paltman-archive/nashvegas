@@ -10,7 +10,7 @@ def read(*path):
 
 setup(
     name="nashvegas",
-    version=VERSION + '-disqus-2',
+    version=VERSION + '-disqus-3',
     description="nashvegas is a management command for managing Django database migrations",
     long_description=read("README.rst"),
     author="Patrick Altman",
