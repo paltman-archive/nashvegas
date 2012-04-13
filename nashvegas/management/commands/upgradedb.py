@@ -358,13 +358,14 @@ class Command(BaseCommand):
                         db=db,
                     )
             
-            sys.stdout.write("Running loaddata for initial_data fixtures on %r.\n" % db)
-            call_command(
-                "loaddata",
-                "initial_data",
-                verbosity=self.verbosity,
-                database=db,
-            )
+            if self.load_initial_data:
+                sys.stdout.write("Running loaddata for initial_data fixtures on %r.\n" % db)
+                call_command(
+                    "loaddata",
+                    "initial_data",
+                    verbosity=self.verbosity,
+                    database=db,
+                )
     
     def seed_migrations(self, stop_at=None):
         # @@@ the command-line interface needs to be re-thinked
@@ -420,6 +421,7 @@ class Command(BaseCommand):
         self.do_create = options.get("do_create")
         self.do_create_all = options.get("do_create_all")
         self.do_seed = options.get("do_seed")
+        self.load_initial_data = options.get("load_initial_data", True)
         self.args = args
         
         if options.get("path"):
