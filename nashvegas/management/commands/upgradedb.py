@@ -3,11 +3,10 @@ import re
 import sys
 import traceback
 
-from collections import defaultdict
 from optparse import make_option
 from subprocess import Popen, PIPE
 
-from django.db import connections, router, transaction, DEFAULT_DB_ALIAS
+from django.db import connections, transaction, DEFAULT_DB_ALIAS
 from django.db.models import get_model
 from django.conf import settings
 from django.core.management import call_command
@@ -15,8 +14,10 @@ from django.core.management.base import BaseCommand, CommandError
 from django.core.management.sql import emit_post_sync_signal
 from django.utils.importlib import import_module
 
+from nashvegas.exceptions import MigrationError
 from nashvegas.models import Migration
-from nashvegas.utils import get_sql_for_new_models
+from nashvegas.utils import get_sql_for_new_models, get_capable_databases, \
+  get_pending_migrations
 
 
 sys.path.append("migrations")
@@ -39,10 +40,6 @@ class Transactional(object):
             transaction.leave_transaction_management(using=db)
 
 
-class MigrationError(Exception):
-    pass
-
-
 class Command(BaseCommand):
     
     option_list = BaseCommand.option_list + (
@@ -61,7 +58,7 @@ class Command(BaseCommand):
         make_option("-s", "--seed", action="store_true",
                     dest="do_seed", default=False,
                     help="Seed nashvegas with migrations that have previously been applied in another manner."),
-        make_option("-d", "--database", action="store", dest="database",
+        make_option("-d", "--database", action="append", dest="databases",
                     help="Nominates a database to synchronize."),
         make_option("--noinput", action="store_false", dest="interactive", default=False,
                     help="Tells Django to NOT prompt the user for input of any kind."),
@@ -70,99 +67,6 @@ class Command(BaseCommand):
                     help="The path to the database migration scripts."))
     
     help = "Upgrade database."
-    
-    def _get_capable_databases(self):
-        """
-        Returns a list of databases which are capable of supporting
-        Nashvegas (based on their routing configuration).
-        """
-        for database in connections:
-            if router.allow_syncdb(database, Migration):
-                yield database
-    
-    def _get_file_list(self, path, max_depth=1, cur_depth=0):
-        """
-        Recursively returns a list of all files up to ``max_depth``
-        in a directory.
-        """
-        for name in os.listdir(path):
-            if name.startswith('.'):
-                continue
-            
-            full_path = os.path.join(path, name)
-            if os.path.isdir(full_path):
-                if cur_depth == max_depth:
-                    continue
-                
-                for result in self._get_file_list(full_path, max_depth, cur_depth + 1):
-                    yield result
-            
-            else:
-                yield full_path
-    
-    def _get_applied_migrations(self):
-        """
-        Returns a dictionary containing lists of all applied migrations
-        where the key is the database alias.
-        """
-        results = defaultdict(list)
-        for database in self._get_capable_databases():
-            for x in Migration.objects.using(database).order_by("migration_label"):
-                results[database].append(x.migration_label)
-        return results
-    
-    def _filter_down(self, stop_at=None):
-        if stop_at is None:
-            stop_at = float("inf")
-        
-        # database: [(number, full_path)]
-        possible_migrations = defaultdict(list)
-        # database: [full_path]
-        applied_migrations = self._get_applied_migrations()
-        # database: [full_path]
-        to_execute = defaultdict(list)
-        
-        try:
-            in_directory = sorted(self._get_file_list(self.path))
-        except OSError:
-            print "An error occurred while reading migrations from %r:" % self.path
-            traceback.print_exc()
-            return to_execute
-        
-        # Iterate through our results and discover which migrations are actually runnable
-        for full_path in in_directory:
-            path, script = os.path.split(full_path)
-            name, ext = os.path.splitext(script)
-            
-            # the database component is default if this is in the root directory
-            # is <directory> if in a subdirectory
-            if path == self.path:
-                database = DEFAULT_DB_ALIAS
-            else:
-                database = os.path.split(path)[-1]
-            
-            # filter by database if set
-            if self.db and database != self.db:
-                continue
-            
-            match = MIGRATION_NAME_RE.match(name)
-            if match is None:
-                raise MigrationError("Invalid migration file prefix %r "
-                                     "(must begin with a number)" % name)
-            
-            number = int(match.group(1))
-            if ext in [".sql", ".py"]:
-                possible_migrations[database].append((number, full_path))
-        
-        for database, scripts in possible_migrations.iteritems():
-            applied = applied_migrations[database]
-            pending = to_execute[database]
-            for number, migration in scripts:
-                path, script = os.path.split(migration)
-                if script not in applied and number <= stop_at:
-                    pending.append(script)
-        
-        return dict((k, v) for k, v in to_execute.iteritems() if v)
     
     def _get_rev(self, fpath):
         """
@@ -286,7 +190,8 @@ class Command(BaseCommand):
                     raise
         
         # @@@ make cleaner / check explicitly for model instead of looping over and doing string comparisons
-        for database in self._get_capable_databases():
+        databases = self.databases or get_capable_databases()
+        for database in databases:
             connection = connections[database]
             cursor = connection.cursor()
             all_new = get_sql_for_new_models(['nashvegas'], using=database)
@@ -300,7 +205,7 @@ class Command(BaseCommand):
                 transaction.commit_unless_managed(using=database)
     
     def create_all_migrations(self):
-        for database in self._get_capable_databases():
+        for database in get_capable_databases():
             statements = get_sql_for_new_models(using=database)
             if len(statements) == 0:
                 continue
@@ -332,7 +237,7 @@ class Command(BaseCommand):
         Executes all pending migrations across all capable
         databases
         """
-        all_migrations = self._filter_down()
+        all_migrations = get_pending_migrations(self.path, self.databases)
         
         if not len(all_migrations):
             sys.stdout.write("There are no migrations to apply.\n")
@@ -380,7 +285,7 @@ class Command(BaseCommand):
             except IndexError:
                 raise CommandError("Usage: ./manage.py upgradedb --seed [stop_at]")
 
-        all_migrations = self._filter_down(stop_at=stop_at)
+        all_migrations = get_pending_migrations(self.path, self.databases, stop_at=stop_at)
         for db, migrations in all_migrations.iteritems():
             for migration in migrations:
                 migration_path = self._get_migration_path(db, migration)
@@ -398,7 +303,7 @@ class Command(BaseCommand):
                     print "%s:%s was already applied" % (db, m.migration_label)
     
     def list_migrations(self):
-        all_migrations = self._filter_down()
+        all_migrations = get_pending_migrations(self.path, self.databases)
         if len(all_migrations) == 0:
             print "There are no migrations to apply."
             return
@@ -408,6 +313,13 @@ class Command(BaseCommand):
             for script in migrations:
                 print "\t%s: %s" % (database, script)
     
+    def _get_default_migration_path(self):
+        try:
+            path = os.path.dirname(os.path.normpath(os.sys.modules[settings.SETTINGS_MODULE].__file__))
+        except KeyError:
+            path = os.getcwd()
+        return os.path.join(path, "migrations")
+
     def handle(self, *args, **options):
         """
         Upgrades the database.
@@ -425,23 +337,16 @@ class Command(BaseCommand):
         if options.get("path"):
             self.path = options.get("path")
         else:
-            default_path = os.path.join(
-                            os.path.dirname(
-                                os.path.normpath(
-                                    os.sys.modules[settings.SETTINGS_MODULE].__file__
-                                )
-                            ),
-                            "migrations"
-                        )
+            default_path = self._get_default_migration_path()
             self.path = getattr(settings, "NASHVEGAS_MIGRATIONS_DIRECTORY", default_path)
         
         self.verbosity = int(options.get("verbosity", 1))
         self.interactive = options.get("interactive")
-        self.db = options.get("database")
+        self.databases = options.get("databases")
         
         # We only use the default alias in creation scenarios (upgrades default to all databases)
-        if self.do_create and not self.db:
-            self.db = DEFAULT_DB_ALIAS
+        if self.do_create and not self.databases:
+            self.databases = [DEFAULT_DB_ALIAS]
         
         if self.do_create and self.do_create_all:
             raise CommandError("You cannot combine --create and --create-all")
@@ -451,7 +356,7 @@ class Command(BaseCommand):
         if self.do_create_all:
             self.create_all_migrations()
         elif self.do_create:
-            self.create_migrations(self.db)
+            self.create_migrations(self.databases)
         
         if self.do_execute:
             self.execute_migrations()
