@@ -4,8 +4,14 @@ from setuptools import setup, find_packages
 
 VERSION = __import__("nashvegas").__version__
 
+
 def read(*path):
     return open(os.path.join(os.path.abspath(os.path.dirname(__file__)), *path)).read()
+
+tests_require = [
+    'nose>=1.1.2',
+    'django-nose>=0.1.3',
+]
 
 
 setup(
@@ -19,6 +25,8 @@ setup(
     maintainer_email="paltman@gmail.com",
     url="http://github.com/paltman/nashvegas/",
     packages=find_packages(),
+    tests_require=tests_require,
+    test_suite='runtests.runtests',
     zip_safe=False,
     classifiers=[
         "Development Status :: 4 - Beta",
