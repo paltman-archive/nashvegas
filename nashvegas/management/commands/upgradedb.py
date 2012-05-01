@@ -190,7 +190,8 @@ class Command(BaseCommand):
                     raise
         
         # @@@ make cleaner / check explicitly for model instead of looping over and doing string comparisons
-        for database in get_capable_databases():
+        databases = self.databases or get_capable_databases()
+        for database in databases:
             connection = connections[database]
             cursor = connection.cursor()
             all_new = get_sql_for_new_models(['nashvegas'], using=database)
@@ -357,7 +358,8 @@ class Command(BaseCommand):
         if self.do_create_all:
             self.create_all_migrations()
         elif self.do_create:
-            self.create_migrations(self.databases)
+            assert len(self.databases) == 1
+            self.create_migrations(self.databases[0])
         
         if self.do_execute:
             self.execute_migrations()

@@ -167,6 +167,7 @@ def get_applied_migrations(databases=None):
     for db in databases:
         for x in Migration.objects.using(db).order_by("migration_label"):
             results[db].append(x.migration_label)
+
     return results
 
 
