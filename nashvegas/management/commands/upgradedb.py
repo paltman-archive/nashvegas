@@ -356,7 +356,8 @@ class Command(BaseCommand):
         if self.do_create_all:
             self.create_all_migrations()
         elif self.do_create:
-            self.create_migrations(self.databases)
+            assert len(self.databases) == 1
+            self.create_migrations(self.databases[0])
         
         if self.do_execute:
             self.execute_migrations()
