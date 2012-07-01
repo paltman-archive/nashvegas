@@ -43,7 +43,7 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
         converter = connection.introspection.table_name_converter
         db_table_in = (converter(opts.db_table) in tables)
         auto_create_in = (
-            opts.auto_created and \
+            opts.auto_created and
             converter(opts.auto_created._meta.db_table) in tables
         )
         return not (db_table_in or auto_create_in)
