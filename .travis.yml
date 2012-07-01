@@ -14,3 +14,8 @@ script:
   - pep8 --ignore=E501,E225,E121,E123,E124,E125,E127,E128,W293 nashvegas || exit 1
   - pyflakes -x W nashvegas || exit 1
   - python runtests.py
+notifications:
+  irc:
+    channels: "irc.freenode.org#nashvegas"
+    on_success: change
+    on_failure: change
