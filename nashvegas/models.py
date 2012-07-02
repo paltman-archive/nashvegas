@@ -4,7 +4,8 @@ try:
     from django.utils.timezone import now
     now;  # poor-man's pyflakes ignore
 except ImportError:
-    from datetime.datetime import now
+    import datetime
+    now = datetime.datetime.now
 
 
 class Migration(models.Model):
