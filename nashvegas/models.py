@@ -1,11 +1,15 @@
 from django.db import models
-from django.utils import timezone
+
+try:
+    from django.utils.timezone import now
+except ImportError:
+    from datetime.datetime import now
 
 
 class Migration(models.Model):
     
     migration_label = models.CharField(max_length=200)
-    date_created = models.DateTimeField(default=timezone.now)
+    date_created = models.DateTimeField(default=now)
     content = models.TextField()
     scm_version = models.CharField(max_length=50, null=True, blank=True)
     
