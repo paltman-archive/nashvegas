@@ -48,16 +48,21 @@ class Command(BaseCommand):
         command = NASHVEGAS.get("dumpdb", "pg_dump -s {dbname}")
 
         print "Getting schema for current database..."
-        current_sql = Popen(command.format(dbname=self.current_name),
-            shell=True, stdout=PIPE).stdout.readlines()
+        current_sql = Popen(
+            command.format(dbname=self.current_name),
+            shell=True,
+            stdout=PIPE
+        ).stdout.readlines()
         
         print "Getting schema for fresh database..."
         self.setup_database()
         connections[self.db].close()
         connections[self.db].settings_dict["NAME"] = self.compare_name
         call_command("syncdb", interactive=False, verbosity=0)
-        new_sql = Popen(command.format(dbname=self.compare_name).split(),
-            stdout=PIPE).stdout.readlines()
+        new_sql = Popen(
+            command.format(dbname=self.compare_name).split(),
+            stdout=PIPE
+        ).stdout.readlines()
         connections[self.db].close()
         connections[self.db].settings_dict["NAME"] = self.current_name
         self.teardown_database()

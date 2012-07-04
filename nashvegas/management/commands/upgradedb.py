@@ -16,8 +16,8 @@ from django.utils.importlib import import_module
 
 from nashvegas.exceptions import MigrationError
 from nashvegas.models import Migration
-from nashvegas.utils import get_sql_for_new_models, get_capable_databases, \
-  get_pending_migrations
+from nashvegas.utils import get_sql_for_new_models, get_capable_databases
+from nashvegas.utils import get_pending_migrations
 
 
 sys.path.append("migrations")

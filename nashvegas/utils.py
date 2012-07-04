@@ -32,9 +32,11 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
     
     # Build the manifest of apps and models that are to be synchronized
     all_models = [
-        (app.__name__.split('.')[-2],
-            [m for m in models.get_models(app, include_auto_created=True)
-            if router.allow_syncdb(using, m)])
+        (app.__name__.split('.')[-2], [
+            m
+            for m in models.get_models(app, include_auto_created=True)
+            if router.allow_syncdb(using, m)
+        ])
         for app in apps
     ]
     
