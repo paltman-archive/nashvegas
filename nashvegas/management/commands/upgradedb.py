@@ -43,25 +43,44 @@ class Transactional(object):
 class Command(BaseCommand):
     
     option_list = BaseCommand.option_list + (
-        make_option("-l", "--list", action="store_true",
-                    dest="do_list", default=False,
+        make_option("-l", "--list",
+                    action="store_true",
+                    dest="do_list",
+                    default=False,
                     help="Enumerate the list of migrations to execute."),
-        make_option("-e", "--execute", action="store_true",
-                    dest="do_execute", default=False,
+        make_option("-e", "--execute",
+                    action="store_true",
+                    dest="do_execute",
+                    default=False,
                     help="Execute migrations not in versions table."),
-        make_option("-c", "--create", action="store_true",
-                    dest="do_create", default=False,
-                    help="Generates sql for models that are installed but not in your database."),
-        make_option("--create-all", action="store_true",
-                    dest="do_create_all", default=False,
-                    help="Generates sql for models that are installed but not in your database."),
-        make_option("-s", "--seed", action="store_true",
-                    dest="do_seed", default=False,
-                    help="Seed nashvegas with migrations that have previously been applied in another manner."),
-        make_option("-d", "--database", action="append", dest="databases",
+        make_option("-c", "--create",
+                    action="store_true",
+                    dest="do_create",
+                    default=False,
+                    help="Generates sql for models that are installed but not "
+                         "in your database."),
+        make_option("--create-all",
+                    action="store_true",
+                    dest="do_create_all",
+                    default=False,
+                    help="Generates sql for models that are installed but not "
+                         "in your database."),
+        make_option("-s", "--seed",
+                    action="store_true",
+                    dest="do_seed",
+                    default=False,
+                    help="Seed nashvegas with migrations that have previously "
+                         "been applied in another manner."),
+        make_option("-d", "--database",
+                    action="append",
+                    dest="databases",
                     help="Nominates a database to synchronize."),
-        make_option("--noinput", action="store_false", dest="interactive", default=False,
-                    help="Tells Django to NOT prompt the user for input of any kind."),
+        make_option("--noinput",
+                    action="store_false",
+                    dest="interactive",
+                    default=False,
+                    help="Tells Django to NOT prompt the user for input of "
+                         "any kind."),
         make_option("-p", "--path", dest="path",
                     default=None,
                     help="The path to the database migration scripts."))
@@ -83,7 +102,9 @@ class Command(BaseCommand):
         if not rev:
             try:
                 cmd = ["svn", "info", fpath]
-                svninfo = Popen(cmd, stdout=PIPE, stderr=PIPE).stdout.readlines()
+                svninfo = Popen(cmd,
+                                stdout=PIPE,
+                                stderr=PIPE).stdout.readlines()
                 for info in svninfo:
                     tokens = info.split(":")
                     if tokens[0].strip() == "Last Changed Rev":
@@ -95,14 +116,17 @@ class Command(BaseCommand):
     
     def _get_current_migration_number(self, database):
         try:
-            result = Migration.objects.using(database).order_by('-migration_label')[0]
+            result = Migration.objects.using(
+                database
+            ).order_by('-migration_label')[0]
         except IndexError:
             return 0
         match = MIGRATION_NAME_RE.match(result.migration_label)
         return int(match.group(1))
     
     def _get_migration_path(self, db, migration):
-        if db == DEFAULT_DB_ALIAS and os.path.exists(os.path.join(self.path, migration)):
+        default_exists = os.path.exists(os.path.join(self.path, migration))
+        if db == DEFAULT_DB_ALIAS and default_exists:
             migration_path = os.path.join(self.path, migration)
         else:
             migration_path = os.path.join(self.path, db, migration)
@@ -139,7 +163,10 @@ class Command(BaseCommand):
                 if l.startswith("### New Model: "):
                     created_models.add(
                         get_model(
-                            *l.replace("### New Model: ", "").strip().split(".")
+                            *l.replace(
+                                "### New Model: ",
+                                ""
+                            ).strip().split(".")
                         )
                     )
         
@@ -170,8 +197,8 @@ class Command(BaseCommand):
     
     def init_nashvegas(self):
         # Copied from line 35 of django.core.management.commands.syncdb
-        # Import the 'management' module within each installed app, to register
-        # dispatcher events.
+        # Import the 'management' module within each installed app, to
+        # register dispatcher events.
         for app_name in settings.INSTALLED_APPS:
             try:
                 import_module(".management", app_name)
@@ -181,24 +208,27 @@ class Command(BaseCommand):
                 # want to ignore the exception if the management module exists
                 # but raises an ImportError for some reason. The only way we
                 # can do this is to check the text of the exception. Note that
-                # we're a bit broad in how we check the text, because different
-                # Python implementations may not use the same text.
+                # we're a bit broad in how we check the text, because
+                # different Python implementations may not use the same text.
                 # CPython uses the text "No module named management"
                 # PyPy uses "No module named myproject.myapp.management"
                 msg = exc.args[0]
                 if not msg.startswith("No module named") or "management" not in msg:
                     raise
         
-        # @@@ make cleaner / check explicitly for model instead of looping over and doing string comparisons
+        # @@@ make cleaner / check explicitly for model instead of looping
+        #     over and doing string comparisons
         databases = self.databases or get_capable_databases()
         for database in databases:
             connection = connections[database]
             cursor = connection.cursor()
             all_new = get_sql_for_new_models(['nashvegas'], using=database)
             for lines in all_new:
-                to_execute = "\n".join(
-                    [l for l in lines.split("\n") if not l.startswith("### New Model: ")]
-                )
+                to_execute = "\n".join([
+                    l
+                    for l in lines.split("\n")
+                    if not l.startswith("### New Model: ")
+                ])
                 if not to_execute:
                     continue
                 cursor.execute(to_execute)
@@ -216,9 +246,14 @@ class Command(BaseCommand):
             if not os.path.exists(db_path):
                 os.makedirs(db_path)
             
-            path = os.path.join(db_path, '%s.sql' % (str(number + 1).zfill(4),))
+            path = os.path.join(
+                db_path,
+                "%s.sql" % (str(number + 1).zfill(4),)
+            )
             if os.path.exists(path):
-                raise CommandError("Unable to create %r: File already exists" % path)
+                raise CommandError(
+                    "Unable to create %r: File already exists" % path
+                )
             
             with open(path, 'w') as fp:
                 for s in statements:
@@ -253,8 +288,15 @@ class Command(BaseCommand):
                 migration_path = self._get_migration_path(db, migration)
                 
                 with Transactional():
-                    sys.stdout.write("Executing migration %r on %r...." % (migration, db))
-                    created_models = self._execute_migration(db, migration_path, show_traceback=show_traceback)
+                    sys.stdout.write(
+                        "Executing migration %r on %r...." %
+                        (migration, db)
+                    )
+                    created_models = self._execute_migration(
+                        db,
+                        migration_path,
+                        show_traceback=show_traceback
+                    )
 
                     emit_post_sync_signal(
                         created_models=created_models,
@@ -264,7 +306,9 @@ class Command(BaseCommand):
                     )
             
             if self.load_initial_data:
-                sys.stdout.write("Running loaddata for initial_data fixtures on %r.\n" % db)
+                sys.stdout.write(
+                    "Running loaddata for initial_data fixtures on %r.\n" % db
+                )
                 call_command(
                     "loaddata",
                     "initial_data",
@@ -274,7 +318,8 @@ class Command(BaseCommand):
     
     def seed_migrations(self, stop_at=None):
         # @@@ the command-line interface needs to be re-thinked
-        # TODO: this needs to be able to handle multi-db when you're specifying stop_at
+        # TODO: this needs to be able to handle multi-db when you're
+        #       specifying stop_at
         if stop_at is None and self.args:
             stop_at = self.args[0]
         
@@ -284,9 +329,13 @@ class Command(BaseCommand):
             except ValueError:
                 raise CommandError("Invalid --seed migration")
             except IndexError:
-                raise CommandError("Usage: ./manage.py upgradedb --seed [stop_at]")
+                raise CommandError(
+                    "Usage: ./manage.py upgradedb --seed [stop_at]"
+                )
 
-        all_migrations = get_pending_migrations(self.path, self.databases, stop_at=stop_at)
+        all_migrations = get_pending_migrations(
+            self.path, self.databases, stop_at=stop_at
+        )
         for db, migrations in all_migrations.iteritems():
             for migration in migrations:
                 migration_path = self._get_migration_path(db, migration)
@@ -301,7 +350,9 @@ class Command(BaseCommand):
                     m.save()
                     print "%s:%s has been seeded" % (db, m.migration_label)
                 else:
-                    print "%s:%s was already applied" % (db, m.migration_label)
+                    print "%s:%s was already applied" % (
+                        db, m.migration_label
+                    )
     
     def list_migrations(self):
         all_migrations = get_pending_migrations(self.path, self.databases)
@@ -316,7 +367,9 @@ class Command(BaseCommand):
     
     def _get_default_migration_path(self):
         try:
-            path = os.path.dirname(os.path.normpath(os.sys.modules[settings.SETTINGS_MODULE].__file__))
+            path = os.path.dirname(os.path.normpath(
+                os.sys.modules[settings.SETTINGS_MODULE].__file__)
+            )
         except KeyError:
             path = os.getcwd()
         return os.path.join(path, "migrations")
@@ -340,13 +393,16 @@ class Command(BaseCommand):
             self.path = options.get("path")
         else:
             default_path = self._get_default_migration_path()
-            self.path = getattr(settings, "NASHVEGAS_MIGRATIONS_DIRECTORY", default_path)
+            self.path = getattr(
+                settings, "NASHVEGAS_MIGRATIONS_DIRECTORY", default_path
+            )
         
         self.verbosity = int(options.get("verbosity", 1))
         self.interactive = options.get("interactive")
         self.databases = options.get("databases")
         
-        # We only use the default alias in creation scenarios (upgrades default to all databases)
+        # We only use the default alias in creation scenarios (upgrades
+        # default to all databases)
         if self.do_create and not self.databases:
             self.databases = [DEFAULT_DB_ALIAS]
         

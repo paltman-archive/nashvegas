@@ -15,13 +15,19 @@ NASHVEGAS = getattr(settings, "NASHVEGAS", {})
 class Command(BaseCommand):
     
     option_list = BaseCommand.option_list + (
-        make_option("-n", "--name", action="store", dest="db_name",
-                    help="The name of the database to hold the truth schema (defaults to <name>_compare"),
-        make_option("-d", "--database", action="store", dest="database",
-                    default=DEFAULT_DB_ALIAS, help="Nominates a database to synchronize. "
-                    "Defaults to the \"default\" database."),
+        make_option("-n", "--name",
+                    action="store",
+                    dest="db_name",
+                    help="The name of the database to hold the truth schema"
+                         " (defaults to <name>_compare"),
+        make_option("-d", "--database",
+                    action="store",
+                    dest="database",
+                    default=DEFAULT_DB_ALIAS,
+                    help="Nominates a database to synchronize. "
+                         "Defaults to the \"default\" database."),
     )
-    help = "Compares current database with the one that nashvegas will build from scratch."
+    help = "Checks for schema differences."
     
     def setup_database(self):
         command = NASHVEGAS.get("createdb", "createdb {dbname}")
@@ -35,18 +41,18 @@ class Command(BaseCommand):
         """
         Compares current database with a migrations.
         
-        Creates a temporary database, applies all the migrations to it, and then
-        dumps the schema from both current and temporary, diffs them, then
-        report the diffs to the user.
+        Creates a temporary database, applies all the migrations to it, and
+        then dumps the schema from both current and temporary, diffs them,
+        then report the diffs to the user.
         """
         self.db = options.get("database", DEFAULT_DB_ALIAS)
         self.current_name = connections[self.db].settings_dict["NAME"]
         self.compare_name = options.get("db_name")
         if not self.compare_name:
             self.compare_name = "%s_compare" % self.current_name
-
+        
         command = NASHVEGAS.get("dumpdb", "pg_dump -s {dbname}")
-
+        
         print "Getting schema for current database..."
         current_sql = Popen(
             command.format(dbname=self.current_name),
