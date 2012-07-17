@@ -16,7 +16,7 @@ tests_require = [
 
 setup(
     name="nashvegas",
-    version=VERSION + '-disqus-5',
+    version=VERSION + '-disqus-6',
     description="nashvegas is a management command for managing Django database migrations",
     long_description=read("README.rst"),
     author="Patrick Altman",
