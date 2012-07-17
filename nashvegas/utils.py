@@ -32,9 +32,11 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
     
     # Build the manifest of apps and models that are to be synchronized
     all_models = [
-        (app.__name__.split('.')[-2],
-            [m for m in models.get_models(app, include_auto_created=True)
-            if router.allow_syncdb(using, m)])
+        (app.__name__.split('.')[-2], [
+            m
+            for m in models.get_models(app, include_auto_created=True)
+            if router.allow_syncdb(using, m)
+        ])
         for app in apps
     ]
     
@@ -43,7 +45,7 @@ def get_sql_for_new_models(apps=None, using=DEFAULT_DB_ALIAS):
         converter = connection.introspection.table_name_converter
         db_table_in = (converter(opts.db_table) in tables)
         auto_create_in = (
-            opts.auto_created and \
+            opts.auto_created and
             converter(opts.auto_created._meta.db_table) in tables
         )
         return not (db_table_in or auto_create_in)
@@ -138,15 +140,15 @@ def get_file_list(path, max_depth=1, cur_depth=0):
         for name in os.listdir(path):
             if name.startswith('.'):
                 continue
-
+            
             full_path = os.path.join(path, name)
             if os.path.isdir(full_path):
                 if cur_depth == max_depth:
                     continue
-
-                for result in get_file_list(full_path, max_depth, cur_depth + 1):
+                
+                file_list = get_file_list(full_path, max_depth, cur_depth + 1)
+                for result in file_list:
                     yield result
-
             else:
                 yield full_path
 
@@ -161,13 +163,15 @@ def get_applied_migrations(databases=None):
     else:
         # We only loop through databases that are listed as "capable"
         all_databases = list(get_capable_databases())
-        databases = list(itertools.ifilter(lambda x: x in all_databases, databases))
-
+        databases = list(
+            itertools.ifilter(lambda x: x in all_databases, databases)
+        )
+    
     results = defaultdict(list)
     for db in databases:
         for x in Migration.objects.using(db).order_by("migration_label"):
             results[db].append(x.migration_label)
-
+    
     return results
 
 
@@ -178,7 +182,7 @@ def get_all_migrations(path, databases=None):
     """
     # database: [(number, full_path)]
     possible_migrations = defaultdict(list)
-
+    
     try:
         in_directory = sorted(get_file_list(path))
     except OSError:
@@ -186,32 +190,33 @@ def get_all_migrations(path, databases=None):
         print "An error occurred while reading migrations from %r:" % path
         traceback.print_exc()
         return {}
-
-    # Iterate through our results and discover which migrations are actually runnable
+    
+    # Iterate through our results and discover which migrations are
+    # actually runnable
     for full_path in in_directory:
         child_path, script = os.path.split(full_path)
         name, ext = os.path.splitext(script)
-
+        
         # the database component is default if this is in the root directory
         # is <directory> if in a subdirectory
         if path == child_path:
             db = DEFAULT_DB_ALIAS
         else:
             db = os.path.split(child_path)[-1]
-
+        
         # filter by database if set
         if databases and db not in databases:
             continue
-
+        
         match = MIGRATION_NAME_RE.match(name)
         if match is None:
             raise MigrationError("Invalid migration file prefix %r "
                                  "(must begin with a number)" % name)
-
+        
         number = int(match.group(1))
         if ext in [".sql", ".py"]:
             possible_migrations[db].append((number, full_path))
-
+    
     return possible_migrations
 
 
@@ -222,14 +227,14 @@ def get_pending_migrations(path, databases=None, stop_at=None):
     """
     if stop_at is None:
         stop_at = float("inf")
-
+    
     # database: [(number, full_path)]
     possible_migrations = get_all_migrations(path, databases)
     # database: [full_path]
     applied_migrations = get_applied_migrations(databases)
     # database: [full_path]
     to_execute = defaultdict(list)
-
+    
     for database, scripts in possible_migrations.iteritems():
         applied = applied_migrations[database]
         pending = to_execute[database]
@@ -237,5 +242,5 @@ def get_pending_migrations(path, databases=None, stop_at=None):
             path, script = os.path.split(migration)
             if script not in applied and number <= stop_at:
                 pending.append(script)
-
+    
     return dict((k, v) for k, v in to_execute.iteritems() if v)
