@@ -10,7 +10,8 @@ class Command(SyncDBCommand):
         else:
             databases = None
         
-        call_command("upgradedb",
+        call_command(
+            "upgradedb",
             do_execute=True,
             databases=databases,
             interactive=options.get("interactive"),
