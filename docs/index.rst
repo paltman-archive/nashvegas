@@ -40,6 +40,7 @@ command that attempts to help you discover missing migrations.
 * Execute the command line:
 
     $ ./manage.py upgradedb --create|--list|--execute
+
     $ ./manage.py comparedb
 
 
@@ -86,7 +87,7 @@ For example, your script might light like this if you need to update all your
 product codes on next release::
 
     from store.models import Product
-    
+
     def migrate():
         for product in Product.objects.all():
             product.code = "NEW-%s" % product.code
@@ -117,7 +118,7 @@ example customisation::
     NASHVEGAS = {
         "createdb": "createdb -U postgres -T template0 -E UTF8 {dbname}",
         "dropdb": "dropdb -U postgres {dbname}",
-        "dumpdb": "pg_dump -U postgres {dbname}",
+        "dumpdb": "pg_dump -U postgres -s {dbname}",
     }
 
 
@@ -127,10 +128,10 @@ If you add a field "test" on model "Foo", comparedb will output::
     Getting schema for current database...
     Getting schema for fresh database...
     Outputing diff between the two...
-    --- 
-    +++ 
+    ---
+    +++
     @@ -515,7 +515,8 @@
-     
+
      CREATE TABLE testapp_foo (
          id integer NOT NULL,
     -    bar character varying(100)
@@ -141,9 +142,9 @@ If you add a field "test" on model "Foo", comparedb will output::
 Example for MySQL
 `````````````````
 
-MySQL is not supported by default thought such settings do work::
+MySQL is not supported by default though such settings do work::
 
-    NASHVEGAS = { 
+    NASHVEGAS = {
         "createdb": "mysql -u root -p -e \"create database {dbname}\"",
         "dropdb": "mysql -u root -p -e \"drop database {dbname}\"",
         "dumpdb": "mysqldump -u root -p {dbname}",
@@ -151,16 +152,16 @@ MySQL is not supported by default thought such settings do work::
 
 If you add a field "test" on model "Foo", comparedb will output::
 
-    >>> ./manage.py comparedb       
+    >>> ./manage.py comparedb
     Getting schema for current database...
-    Enter password: 
+    Enter password:
     Getting schema for fresh database...
-    Enter password: 
-    Enter password: 
-    Enter password: 
+    Enter password:
+    Enter password:
+    Enter password:
     Outputing diff between the two...
-    --- 
-    +++ 
+    ---
+    +++
     @@ -1,6 +1,6 @@
      -- MySQL dump 10.13  Distrib 5.1.58, for debian-linux-gnu (x86_64)
      --
@@ -168,7 +169,7 @@ If you add a field "test" on model "Foo", comparedb will output::
     +-- Host: localhost    Database: testproject_compare
      -- ------------------------------------------------------
      -- Server version  5.1.58-1ubuntu1
-     
+
     @@ -419,6 +419,7 @@
      CREATE TABLE `testapp_foo` (
        `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -180,7 +181,7 @@ If you add a field "test" on model "Foo", comparedb will output::
     @@ -441,4 +442,4 @@
      /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
      /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-     
+
     --- Dump completed on 2012-03-07 12:58:15
     +-- Dump completed on 2012-03-07 12:58:18
 
@@ -193,4 +194,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
