@@ -96,7 +96,7 @@ class Command(BaseCommand):
         connections[self.db].close()
         connections[self.db].settings_dict["NAME"] = self.compare_name
         try:
-            call_command("syncdb", interactive=False, verbosity=0)
+            call_command("syncdb", interactive=False, verbosity=0, migrations=False)
             new_sql = Popen(
                 command.format(dbname=self.compare_name).split(),
                 stdout=PIPE
