@@ -29,6 +29,11 @@ class Command(BaseCommand):
                     default=DEFAULT_DB_ALIAS,
                     help="Nominates a database to synchronize. "
                          "Defaults to the \"default\" database."),
+        make_option("-l", "--lines-of-context",
+                    action="store",
+                    dest="lines",
+                    default=10,
+                    help="Show this amount of context."),
     )
     help = "Checks for schema differences."
     
@@ -51,6 +56,7 @@ class Command(BaseCommand):
         self.db = options.get("database", DEFAULT_DB_ALIAS)
         self.current_name = connections[self.db].settings_dict["NAME"]
         self.compare_name = options.get("db_name")
+        self.lines = options.get("lines")
 
         if not self.compare_name:
             self.compare_name = "%s_compare" % self.current_name
@@ -79,4 +85,5 @@ class Command(BaseCommand):
         
         print "Outputing diff between the two..."
         print "".join(difflib.unified_diff(normalize_sql(current_sql),
-                                           normalize_sql(new_sql)))
+                                           normalize_sql(new_sql),
+                                           n=int(self.lines)))
