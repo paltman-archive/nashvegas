@@ -74,14 +74,16 @@ class Command(BaseCommand):
         self.setup_database()
         connections[self.db].close()
         connections[self.db].settings_dict["NAME"] = self.compare_name
-        call_command("syncdb", interactive=False, verbosity=0)
-        new_sql = Popen(
-            command.format(dbname=self.compare_name).split(),
-            stdout=PIPE
-        ).stdout.readlines()
-        connections[self.db].close()
-        connections[self.db].settings_dict["NAME"] = self.current_name
-        self.teardown_database()
+        try:
+            call_command("syncdb", interactive=False, verbosity=0)
+            new_sql = Popen(
+                command.format(dbname=self.compare_name).split(),
+                stdout=PIPE
+            ).stdout.readlines()
+        finally:
+            connections[self.db].close()
+            connections[self.db].settings_dict["NAME"] = self.current_name
+            self.teardown_database()
         
         print "Outputing diff between the two..."
         print "".join(difflib.unified_diff(normalize_sql(current_sql),
