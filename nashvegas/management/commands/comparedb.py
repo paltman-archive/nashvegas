@@ -11,6 +11,9 @@ from django.core.management.base import BaseCommand
 
 NASHVEGAS = getattr(settings, "NASHVEGAS", {})
 
+def normalize_sql(lines):
+    """ perform simple normalization: remove comments """
+    return [line for line in lines if not line.startswith("--")]
 
 class Command(BaseCommand):
     
@@ -48,6 +51,7 @@ class Command(BaseCommand):
         self.db = options.get("database", DEFAULT_DB_ALIAS)
         self.current_name = connections[self.db].settings_dict["NAME"]
         self.compare_name = options.get("db_name")
+
         if not self.compare_name:
             self.compare_name = "%s_compare" % self.current_name
         
@@ -74,4 +78,5 @@ class Command(BaseCommand):
         self.teardown_database()
         
         print "Outputing diff between the two..."
-        print "".join(difflib.unified_diff(current_sql, new_sql))
+        print "".join(difflib.unified_diff(normalize_sql(current_sql),
+                                           normalize_sql(new_sql)))
