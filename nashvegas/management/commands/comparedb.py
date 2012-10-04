@@ -11,9 +11,10 @@ from django.core.management.base import BaseCommand
 
 NASHVEGAS = getattr(settings, "NASHVEGAS", {})
 
+
 def ignorable_sql(line, level):
     if level == 0:
-        return False # ignore nothing
+        return False  # ignore nothing
 
     # level 1 = ignore comments
     if level > 0 and line.lstrip().startswith("--"):
@@ -25,9 +26,11 @@ def ignorable_sql(line, level):
 
     return False
 
+
 def normalize_sql(lines, level=1):
     """ perform simple normalization: remove comments """
     return [line for line in lines if not ignorable_sql(line, level)]
+
 
 class Command(BaseCommand):
     
