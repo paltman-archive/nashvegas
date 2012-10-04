@@ -11,9 +11,23 @@ from django.core.management.base import BaseCommand
 
 NASHVEGAS = getattr(settings, "NASHVEGAS", {})
 
-def normalize_sql(lines):
+def ignorable_sql(line, level):
+    if level == 0:
+        return False # ignore nothing
+
+    # level 1 = ignore comments
+    if level > 0 and line.lstrip().startswith("--"):
+        return True
+
+    # level 2 = ignore constraints
+    if level > 1 and line.lstrip().lower().startswith("add constraint"):
+        return True
+
+    return False
+
+def normalize_sql(lines, level=1):
     """ perform simple normalization: remove comments """
-    return [line for line in lines if not line.startswith("--")]
+    return [line for line in lines if not ignorable_sql(line, level)]
 
 class Command(BaseCommand):
     
@@ -33,7 +47,13 @@ class Command(BaseCommand):
                     action="store",
                     dest="lines",
                     default=10,
-                    help="Show this amount of context."),
+                    help="Show this amount of context (default 10)."),
+        make_option("-i", "--ignore-level",
+                    action="store",
+                    dest="ignore",
+                    default=1,
+                    help="Ignore level. 0=ignore nothing, 1=ignore comments (default), "
+                         "2=ignore constraints"),
     )
     help = "Checks for schema differences."
     
@@ -57,6 +77,7 @@ class Command(BaseCommand):
         self.current_name = connections[self.db].settings_dict["NAME"]
         self.compare_name = options.get("db_name")
         self.lines = options.get("lines")
+        self.ignore = int(options.get('ignore'))
 
         if not self.compare_name:
             self.compare_name = "%s_compare" % self.current_name
@@ -86,6 +107,6 @@ class Command(BaseCommand):
             self.teardown_database()
         
         print "Outputing diff between the two..."
-        print "".join(difflib.unified_diff(normalize_sql(current_sql),
-                                           normalize_sql(new_sql),
+        print "".join(difflib.unified_diff(normalize_sql(current_sql, self.ignore),
+                                           normalize_sql(new_sql, self.ignore),
                                            n=int(self.lines)))
