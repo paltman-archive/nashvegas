@@ -9,8 +9,9 @@ def read(*path):
     return open(os.path.join(os.path.abspath(os.path.dirname(__file__)), *path)).read()
 
 tests_require = [
-    'nose>=1.1.2',
     'django-nose>=0.1.3',
+    'mock',
+    'nose>=1.1.2',
 ]
 
 
