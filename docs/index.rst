@@ -81,9 +81,9 @@ scripts.  For example::
     0002.py
     0003.sql
 
-The Python script will be executed 2nd between ``0000.sql`` and ``0003.sql``. The script will only be executed if the module contains a callable named ``migrate``. It is a good idea to put all your executing code within a class or series of functions or within a singe ``migrate()`` function so as to avoid code executing upon import.
+The Python script will be executed 2nd between ``0000.sql`` and ``0003.sql``. The script will only be executed if the module contains a callable named ``migrate``. It is a good idea to put all your executing code within a class or series of functions or within a single ``migrate()`` function so as to avoid code executing upon import.
 
-For example, your script might light like this if you need to update all your
+For example, your script might look like this if you need to update all your
 product codes on next release::
 
     from store.models import Product
