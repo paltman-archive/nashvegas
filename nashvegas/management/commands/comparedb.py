@@ -12,6 +12,26 @@ from django.core.management.base import BaseCommand
 NASHVEGAS = getattr(settings, "NASHVEGAS", {})
 
 
+def ignorable_sql(line, level):
+    if level == 0:
+        return False  # ignore nothing
+
+    # level 1 = ignore comments
+    if level > 0 and line.lstrip().startswith("--"):
+        return True
+
+    # level 2 = ignore constraints
+    if level > 1 and line.lstrip().lower().startswith("add constraint"):
+        return True
+
+    return False
+
+
+def normalize_sql(lines, level=1):
+    """ perform simple normalization: remove comments """
+    return [line for line in lines if not ignorable_sql(line, level)]
+
+
 class Command(BaseCommand):
     
     option_list = BaseCommand.option_list + (
@@ -26,6 +46,17 @@ class Command(BaseCommand):
                     default=DEFAULT_DB_ALIAS,
                     help="Nominates a database to synchronize. "
                          "Defaults to the \"default\" database."),
+        make_option("-l", "--lines-of-context",
+                    action="store",
+                    dest="lines",
+                    default=10,
+                    help="Show this amount of context (default 10)."),
+        make_option("-i", "--ignore-level",
+                    action="store",
+                    dest="ignore",
+                    default=1,
+                    help="Ignore level. 0=ignore nothing, 1=ignore comments (default), "
+                         "2=ignore constraints"),
     )
     help = "Checks for schema differences."
     
@@ -48,6 +79,9 @@ class Command(BaseCommand):
         self.db = options.get("database", DEFAULT_DB_ALIAS)
         self.current_name = connections[self.db].settings_dict["NAME"]
         self.compare_name = options.get("db_name")
+        self.lines = options.get("lines")
+        self.ignore = int(options.get('ignore'))
+
         if not self.compare_name:
             self.compare_name = "%s_compare" % self.current_name
         
@@ -64,14 +98,18 @@ class Command(BaseCommand):
         self.setup_database()
         connections[self.db].close()
         connections[self.db].settings_dict["NAME"] = self.compare_name
-        call_command("syncdb", interactive=False, verbosity=0)
-        new_sql = Popen(
-            command.format(dbname=self.compare_name).split(),
-            stdout=PIPE
-        ).stdout.readlines()
-        connections[self.db].close()
-        connections[self.db].settings_dict["NAME"] = self.current_name
-        self.teardown_database()
+        try:
+            call_command("syncdb", interactive=False, verbosity=0, migrations=False)
+            new_sql = Popen(
+                command.format(dbname=self.compare_name).split(),
+                stdout=PIPE
+            ).stdout.readlines()
+        finally:
+            connections[self.db].close()
+            connections[self.db].settings_dict["NAME"] = self.current_name
+            self.teardown_database()
         
         print "Outputing diff between the two..."
-        print "".join(difflib.unified_diff(current_sql, new_sql))
+        print "".join(difflib.unified_diff(normalize_sql(current_sql, self.ignore),
+                                           normalize_sql(new_sql, self.ignore),
+                                           n=int(self.lines)))
