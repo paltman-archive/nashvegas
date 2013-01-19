@@ -39,10 +39,19 @@ command that attempts to help you discover missing migrations.
 
 * Execute the command line:
 
-    $ ./manage.py upgradedb --create|--list|--execute
+    $ ./manage.py upgradedb --create
+    $ ./manage.py upgradedb --list
+    $ ./manage.py upgradedb --execute
 
     $ ./manage.py comparedb
 
+It is useful to create an initial migration when starting any new project (or
+adding nashvegas to the project to start tracking schema changes). This can
+easily be done with:
+
+    $ ./manage.py upgradedb -c > migrations/001_initial.sql
+
+Having this initial migration also helps when running tests.
 
 Options for upgradedb
 ---------------------
