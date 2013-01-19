@@ -2,7 +2,7 @@ from django.db import models
 
 try:
     from django.utils.timezone import now
-    now;  # poor-man's pyflakes ignore
+    now
 except ImportError:
     import datetime
     now = datetime.datetime.now
