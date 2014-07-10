@@ -1,3 +1,9 @@
+**NO LONGER SUPPORTED**: This project will receive no more updates and pull
+requests and issues will no longer be monitored. I recommend everyone begin to
+adopt the migrations support that is in Django 1.7 and use South until you are
+on Django 1.7.
+
+
 =========
 Nashvegas
 =========
